@@ -43,6 +43,8 @@ public class DataChecker {
         logger.info("Crash test is started");
         if (startAndCrash()) {
           checkDatabase();
+        } else {
+          return;
         }
         logger.info("Crash test is completed");
       }
@@ -72,7 +74,7 @@ public class DataChecker {
       return false;
     } else {
       process.destroyForcibly();
-      logger.info("Process is destroyed data integrity check is started");
+      logger.error("Process is destroyed data integrity check is started");
       return true;
     }
   }
