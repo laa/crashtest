@@ -75,11 +75,11 @@ public class DataChecker {
     logger.info("DataLoader process is started, waiting for completion during %d seconds...", secondsToWait);
     final boolean completed = process.waitFor(secondsToWait, TimeUnit.SECONDS);
     if (completed) {
-      logger.info("Data load is completed successfully nothing to check");
+      logger.error("Data load is completed successfully nothing to check");
       return false;
     } else {
       process.destroyForcibly();
-      logger.error("Process is destroyed data integrity check is started");
+      logger.info("Process is destroyed data integrity check is started");
       return true;
     }
   }
