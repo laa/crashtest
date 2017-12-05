@@ -14,6 +14,8 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Random;
@@ -39,9 +41,16 @@ public class DataChecker {
     calendar.add(Calendar.DATE, 7);
     final long endTime = calendar.getTimeInMillis();
 
+    final Path stopFilePath = Paths.get("target/stop.txt");
+
     int counter = 0;
     try {
       while (System.currentTimeMillis() < endTime) {
+        if (stopFilePath.toFile().exists()) {
+          logger.info("Crash suite is stopped by stop file");
+          return;
+        }
+
         counter++;
         logger.info("Crash test is started, %d try", counter);
         if (startAndCrash()) {

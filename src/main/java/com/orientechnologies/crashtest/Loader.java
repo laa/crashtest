@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Loader implements Callable<Void> {
@@ -24,9 +25,12 @@ public class Loader implements Callable<Void> {
   private final ODatabasePool pool;
   private final AtomicLong    idGen;
 
-  Loader(ODatabasePool pool, AtomicLong idGen) {
+  private final AtomicBoolean stopFlag;
+
+  Loader(ODatabasePool pool, AtomicLong idGen, AtomicBoolean stopFlag) {
     this.pool = pool;
     this.idGen = idGen;
+    this.stopFlag = stopFlag;
   }
 
   @Override
@@ -35,7 +39,7 @@ public class Loader implements Callable<Void> {
       final ThreadLocalRandom random = ThreadLocalRandom.current();
       int ringsCounter = 0;
 
-      while (true) {
+      while (!stopFlag.get()) {
         try (ODatabaseSession session = pool.acquire()) {
           final int ringSize = random.nextInt(10) + 3;
           try {
@@ -135,6 +139,9 @@ public class Loader implements Callable<Void> {
       logger.error("Error during data load", e);
       throw e;
     }
+
+    logger.info("Thread %s was stopped, by stop file", Thread.currentThread().getName());
+    return null;
   }
 
   private OVertex chooseRandomVertex(ODatabaseSession session, ThreadLocalRandom random) {
