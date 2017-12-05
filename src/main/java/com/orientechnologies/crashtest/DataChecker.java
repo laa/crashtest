@@ -32,15 +32,18 @@ public class DataChecker {
   private static final Logger logger = LogManager.getFormatterLogger(DataChecker.class);
 
   public static void main(String[] args) {
+    logger.info("Crash suite is started");
     OGlobalConfiguration.STORAGE_CHECKSUM_MODE.setValue(OChecksumMode.StoreAndThrow);
 
     final Calendar calendar = Calendar.getInstance();
     calendar.add(Calendar.DATE, 7);
     final long endTime = calendar.getTimeInMillis();
 
+    int counter = 0;
     try {
       while (System.currentTimeMillis() < endTime) {
-        logger.info("Crash test is started");
+        counter++;
+        logger.info("Crash test is started, %d try", counter);
         if (startAndCrash()) {
           checkDatabase();
         } else {
@@ -51,6 +54,8 @@ public class DataChecker {
     } catch (Exception e) {
       logger.error("Error during crash test execution", e);
     }
+
+    logger.info("Crash suite is completed");
   }
 
   private static boolean startAndCrash() throws IOException, InterruptedException {
