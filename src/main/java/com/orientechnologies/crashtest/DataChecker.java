@@ -52,7 +52,7 @@ public class DataChecker {
         }
 
         counter++;
-        logger.info("Crash test is started, %d try", counter);
+        logger.info("Crash test is started, %d iteration", counter);
         if (startAndCrash()) {
           checkDatabase();
         } else {
