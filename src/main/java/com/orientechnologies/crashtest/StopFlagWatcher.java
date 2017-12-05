@@ -18,7 +18,7 @@ public class StopFlagWatcher implements Callable<Void> {
   private final Path          stopFile;
   private final AtomicBoolean stopFlag;
 
-  public StopFlagWatcher(WatchService watcher, Path stopFile, AtomicBoolean stopFlag) {
+  StopFlagWatcher(WatchService watcher, Path stopFile, AtomicBoolean stopFlag) {
     this.watcher = watcher;
     this.stopFile = stopFile;
     this.stopFlag = stopFlag;
