@@ -19,6 +19,8 @@ import java.nio.file.Paths;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -84,11 +86,16 @@ public class DataChecker {
     final long secondsToWait = random.nextInt(24 * 60 * 60 /*24 hours in seconds*/ - 15) + 15;
 
     logger.info("DataLoader process is started, waiting for completion during %d seconds...", secondsToWait);
+    final Timer timer = new Timer();
+    timer.schedule(new CrashCountDownTask(secondsToWait), 30 * 1000, 30 * 1000);
+
     final boolean completed = process.waitFor(secondsToWait, TimeUnit.SECONDS);
     if (completed) {
+      timer.cancel();
       logger.error("Data load is completed successfully nothing to check");
       return false;
     } else {
+      timer.cancel();
       process.destroyForcibly();
       logger.info("Process is destroyed data integrity check is started");
       return true;
