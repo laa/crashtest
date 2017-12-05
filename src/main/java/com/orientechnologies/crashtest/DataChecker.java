@@ -55,7 +55,7 @@ public class DataChecker {
         logger.info("Crash test is started, %d iteration", counter);
         if (startAndCrash()) {
           logger.info("Wait for 15 min to be sure that all file locks are released");
-          Thread.sleep(15 * 60 *  1000);
+          Thread.sleep(15 * 60 * 1000);
           checkDatabase();
         } else {
           return;
@@ -96,32 +96,32 @@ public class DataChecker {
   }
 
   private static void checkDatabase() {
-    OrientDB orientDB = new OrientDB(DATABASES_DIR, OrientDBConfig.defaultConfig());
-    ODatabaseSession session = orientDB.open(DB_NAME, "admin", "admin");
+    try (OrientDB orientDB = new OrientDB(DATABASES_DIR, OrientDBConfig.defaultConfig())) {
+      try (ODatabaseSession session = orientDB.open(DB_NAME, "admin", "admin")) {
 
-    AtomicInteger counter = new AtomicInteger();
-    logger.info("Start DB check");
-    try (OResultSet resultSet = session.query("select from " + CRASH_V)) {
-      resultSet.vertexStream().forEach(v -> {
-        final List<Long> ringIds = v.getProperty(RING_IDS);
-        if (ringIds != null) {
-          for (Long ringId : ringIds) {
-            checkRing(v, ringId);
-          }
-        }
+        AtomicInteger counter = new AtomicInteger();
+        logger.info("Start DB check");
+        try (OResultSet resultSet = session.query("select from " + CRASH_V)) {
+          resultSet.vertexStream().forEach(v -> {
+            final List<Long> ringIds = v.getProperty(RING_IDS);
+            if (ringIds != null) {
+              for (Long ringId : ringIds) {
+                checkRing(v, ringId);
+              }
+            }
 
-        final int cnt = counter.incrementAndGet();
-        if (cnt > 0 && cnt % 1000 == 0) {
-          logger.info("%d vertexes were checked", cnt);
+            final int cnt = counter.incrementAndGet();
+            if (cnt > 0 && cnt % 1000 == 0) {
+              logger.info("%d vertexes were checked", cnt);
+            }
+          });
         }
-      });
+      }
+
+      logger.info("DB check is completed, removing DB");
+
+      orientDB.drop(DB_NAME);
     }
-    session.close();
-
-    logger.info("DB check is completed, removing DB");
-
-    orientDB.drop(DB_NAME);
-    orientDB.close();
   }
 
   private static void checkRing(OVertex start, long ringId) {
