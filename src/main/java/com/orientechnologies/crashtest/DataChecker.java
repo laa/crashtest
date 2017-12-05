@@ -54,6 +54,8 @@ public class DataChecker {
         counter++;
         logger.info("Crash test is started, %d iteration", counter);
         if (startAndCrash()) {
+          logger.info("Wait for 15 min to be sure that all file locks are released");
+          Thread.sleep(15 * 60 *  1000);
           checkDatabase();
         } else {
           return;
