@@ -37,6 +37,10 @@ public class DataChecker {
 
   public static void main(String[] args) {
     logger.info("Crash suite is started");
+    final long timeSeed = System.nanoTime();
+    logger.info("TimeSeed: %d", timeSeed);
+    final Random random = new Random(timeSeed);
+
     OGlobalConfiguration.STORAGE_CHECKSUM_MODE.setValue(OChecksumMode.StoreAndThrow);
 
     final Calendar calendar = Calendar.getInstance();
@@ -55,7 +59,7 @@ public class DataChecker {
 
         counter++;
         logger.info("Crash test is started, %d iteration", counter);
-        if (startAndCrash()) {
+        if (startAndCrash(random)) {
           logger.info("Wait for 15 min to be sure that all file locks are released");
           Thread.sleep(15 * 60 * 1000);
           checkDatabase();
@@ -71,9 +75,8 @@ public class DataChecker {
     logger.info("Crash suite is completed");
   }
 
-  private static boolean startAndCrash() throws IOException, InterruptedException {
-    final long timeSeed = System.nanoTime();
-    logger.info("TimeSeed: %d", timeSeed);
+  private static boolean startAndCrash(final Random random) throws IOException, InterruptedException {
+
 
     String javaExec = System.getProperty("java.home") + "/bin/java";
     javaExec = (new File(javaExec)).getCanonicalPath();
@@ -82,7 +85,7 @@ public class DataChecker {
     processBuilder.inheritIO();
     Process process = processBuilder.start();
 
-    final Random random = new Random(timeSeed);
+
     final long secondsToWait = random.nextInt(24 * 60 * 60 /*24 hours in seconds*/ - 15) + 15;
 
     logger.info("DataLoader process is started, waiting for completion during %d seconds...", secondsToWait);
