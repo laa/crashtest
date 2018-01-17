@@ -8,10 +8,15 @@ import com.orientechnologies.orient.core.db.OrientDBConfig;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.OVertex;
+import com.sun.jna.Pointer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -39,6 +44,8 @@ public class DataLoader {
   static final String DATABASES_DIR = "plocal:target/databases";
 
   public static void main(String[] args) throws Exception {
+    startCrashThread();
+
     final AtomicBoolean stopFlag = new AtomicBoolean();
     final ExecutorService loaderService = Executors.newCachedThreadPool();
 
@@ -97,6 +104,39 @@ public class DataLoader {
     } finally {
       loaderService.shutdown();
     }
+  }
+
+  private static void startCrashThread() throws IOException {
+    logger.info("Starting JVM halt thread");
+
+    final ServerSocket serverSocket = new ServerSocket(777, 0, InetAddress.getLocalHost());
+    serverSocket.setReuseAddress(true);
+
+    final Thread crashThread = new Thread(() -> {
+      try {
+        logger.info("Halt thread is listening for the signal");
+
+        final Socket clientSocket = serverSocket.accept();
+        final InputStream crashStream = clientSocket.getInputStream();
+
+        while (true) {
+          final int value = crashStream.read();
+
+          if (value == 42) {
+            logger.info("Halt signal is received, trying to halt JVM");
+            Runtime.getRuntime().halt(-1);
+          } else {
+            logger.info("Unknown signal is received by halt thread, listening for next signal");
+          }
+        }
+
+      } catch (IOException e) {
+        logger.error("Error during listening for JVM halt signal", e);
+      }
+    });
+
+    crashThread.setDaemon(true);
+    crashThread.start();
   }
 
   private static void addStopFileWatcher(AtomicBoolean stopFlag, ExecutorService loaderService) throws IOException {

@@ -14,6 +14,9 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Calendar;
@@ -77,14 +80,12 @@ public class DataChecker {
 
   private static boolean startAndCrash(final Random random) throws IOException, InterruptedException {
 
-
     String javaExec = System.getProperty("java.home") + "/bin/java";
     javaExec = (new File(javaExec)).getCanonicalPath();
-    final ProcessBuilder processBuilder = new ProcessBuilder(javaExec, "-Xmx2048m", "-XX:MaxDirectMemorySize=512g", "-classpath",
+    final ProcessBuilder processBuilder = new ProcessBuilder(javaExec, "-Xmx2048m", "-classpath",
         System.getProperty("java.class.path"), DataLoader.class.getName());
     processBuilder.inheritIO();
     Process process = processBuilder.start();
-
 
     final long secondsToWait = random.nextInt(24 * 60 * 60 /*24 hours in seconds*/ - 15) + 15;
 
@@ -99,10 +100,34 @@ public class DataChecker {
       return false;
     } else {
       timer.cancel();
-      process.destroyForcibly();
+
+      final boolean killSignal = random.nextBoolean();
+
+      if (killSignal) {
+        logger.info("Process will be destroyed by sending of KILL signal");
+        process.destroyForcibly().waitFor();
+      } else {
+        logger.info("Process will be destroyed by halting JVM");
+        triggerJVMHalt();
+
+        final boolean terminated = process.waitFor(60, TimeUnit.SECONDS);
+
+        if (!terminated) {
+          logger.info("Process was not terminated by halting JVM, destroying process by sending of KILL signal");
+          process.destroyForcibly().waitFor();
+        }
+      }
+
       logger.info("Process is destroyed data integrity check is started");
       return true;
     }
+  }
+
+  private static void triggerJVMHalt() throws IOException {
+    final Socket socket = new Socket();
+    socket.connect(new InetSocketAddress(InetAddress.getLocalHost(), 777));
+    socket.setSoTimeout(2000);
+    socket.getOutputStream().write(42);
   }
 
   private static void checkDatabase() {
