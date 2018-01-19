@@ -5,11 +5,13 @@ import com.orientechnologies.orient.core.db.ODatabasePool;
 import com.orientechnologies.orient.core.db.ODatabaseSession;
 import com.orientechnologies.orient.core.record.OEdge;
 import com.orientechnologies.orient.core.record.OVertex;
+import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,7 +36,7 @@ public class Loader implements Callable<Void> {
   }
 
   @Override
-  public Void call() throws Exception {
+  public Void call() {
     try {
       final ThreadLocalRandom random = ThreadLocalRandom.current();
       int ringsCounter = 0;
@@ -42,22 +44,41 @@ public class Loader implements Callable<Void> {
       while (!stopFlag.get()) {
         try (ODatabaseSession session = pool.acquire()) {
           final int ringSize = random.nextInt(10) + 3;
+
           try {
             session.begin();
 
-            final Set<OVertex> ringVertices = new HashSet<>();
             final long ringId = idGen.getAndIncrement();
 
             OVertex prevVertex = null;
             OVertex firstVertex = null;
 
-            while (ringVertices.size() < ringSize) {
-              OVertex v = chooseRandomVertex(session, random);
-              List<Long> ringIds = v.getProperty(DataLoader.RING_IDS);
+            final Set<Integer> vertexIds = new HashSet<>();
+
+            while (vertexIds.size() < ringSize) {
+              final int vertexId = random.nextInt(DataLoader.VERTEX_COUNT);
+              vertexIds.add(vertexId);
+            }
+
+            final List<OVertex> vertices = fetchVertices(session, vertexIds);
+
+            for (int i = 0; i < vertices.size(); i++) {
+              OVertex vertex = vertices.get(i);
+              List<Long> ringIds = vertex.getProperty(DataLoader.RING_IDS);
 
               int retryCounter = 0;
-              do {
-                if (ringVertices.contains(v)) {
+
+              while (ringIds != null && ringIds.size() >= 60) {
+                retryCounter++;
+
+                if (retryCounter > MAX_RETRIES) {
+                  logger.info("%s - Limit of ring retries is reached, thread stopped, %d rings were created",
+                      Thread.currentThread().getName(), ringsCounter);
+                  return null;
+                }
+
+                vertex = chooseRandomVertex(session, random);
+                while (!vertexIds.add(vertex.<Integer>getProperty(DataLoader.V_ID))) {
                   retryCounter++;
 
                   if (retryCounter > MAX_RETRIES) {
@@ -66,52 +87,41 @@ public class Loader implements Callable<Void> {
                     return null;
                   }
 
-                  v = chooseRandomVertex(session, random);
-                  ringIds = v.getProperty(DataLoader.RING_IDS);
-                } else {
-                  while (ringIds != null && ringIds.size() >= 60) {
-                    retryCounter++;
-
-                    if (retryCounter > MAX_RETRIES) {
-                      logger.info("%s - Limit of ring retries is reached, thread stopped, %d rings were created",
-                          Thread.currentThread().getName(), ringsCounter);
-                      return null;
-                    }
-
-                    v = chooseRandomVertex(session, random);
-                    ringIds = v.getProperty(DataLoader.RING_IDS);
-                  }
+                  vertex = chooseRandomVertex(session, random);
                 }
-              } while (!ringVertices.add(v));
+
+                ringIds = vertex.getProperty(DataLoader.RING_IDS);
+                vertices.set(i, vertex);
+              }
 
               if (ringIds == null) {
                 ringIds = new ArrayList<>();
-                v.setProperty(DataLoader.RING_IDS, ringIds);
+                vertex.setProperty(DataLoader.RING_IDS, ringIds);
               }
 
               ringIds.add(ringId);
 
-              List<Integer> ringSizes = v.getProperty(DataLoader.RING_SIZES);
+              List<Integer> ringSizes = vertex.getProperty(DataLoader.RING_SIZES);
               if (ringSizes == null) {
                 ringSizes = new ArrayList<>();
-                v.setProperty(DataLoader.RING_SIZES, ringSizes);
+                vertex.setProperty(DataLoader.RING_SIZES, ringSizes);
               }
 
               ringSizes.add(ringSize);
 
               if (prevVertex != null) {
-                final OEdge edge = prevVertex.addEdge(v, DataLoader.CRASH_E);
+                final OEdge edge = prevVertex.addEdge(vertex, DataLoader.CRASH_E);
                 edge.setProperty(DataLoader.RING_ID, ringId);
 
                 prevVertex.save();
                 edge.save();
               }
 
-              v.save();
-              prevVertex = v;
+              vertex.save();
+              prevVertex = vertex;
 
               if (firstVertex == null) {
-                firstVertex = v;
+                firstVertex = vertex;
               }
             }
 
@@ -142,6 +152,22 @@ public class Loader implements Callable<Void> {
 
     logger.info("Thread %s was stopped, by stop file", Thread.currentThread().getName());
     return null;
+  }
+
+  private List<OVertex> fetchVertices(ODatabaseSession session, Collection<Integer> vertexIds) {
+    final List<OVertex> vertices = new ArrayList<>();
+
+    for (Integer vId : vertexIds) {
+      try (OResultSet resultSet = session
+          .query("select from " + DataLoader.CRASH_V + " where " + DataLoader.V_ID + " = ?", vId)) {
+        final OResult result = resultSet.next();
+
+        assert result.getVertex().isPresent();
+        vertices.add(result.getVertex().get());
+      }
+    }
+
+    return vertices;
   }
 
   private OVertex chooseRandomVertex(ODatabaseSession session, ThreadLocalRandom random) {
