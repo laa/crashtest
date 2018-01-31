@@ -27,11 +27,17 @@ public class Loader implements Callable<Void> {
   private final ODatabasePool pool;
   private final AtomicLong    idGen;
 
+  private final boolean addIndex;
+
+  private final boolean addBinaryRecrods;
+
   private final AtomicBoolean stopFlag;
 
-  Loader(ODatabasePool pool, AtomicLong idGen, AtomicBoolean stopFlag) {
+  Loader(ODatabasePool pool, AtomicLong idGen, boolean addIndex, boolean addBinaryRecords, AtomicBoolean stopFlag) {
     this.pool = pool;
     this.idGen = idGen;
+    this.addIndex = addIndex;
+    this.addBinaryRecrods = addBinaryRecords;
     this.stopFlag = stopFlag;
   }
 
@@ -113,6 +119,29 @@ public class Loader implements Callable<Void> {
                 final OEdge edge = prevVertex.addEdge(vertex, DataLoader.CRASH_E);
                 edge.setProperty(DataLoader.RING_ID, ringId);
 
+                if (addIndex) {
+                  final int randomValue = random.nextInt(DataLoader.VERTEX_COUNT / 1000);
+                  edge.setProperty(DataLoader.RANDOM_VALUE_FIELD, randomValue);
+
+                  final int randomValuesSize = random.nextInt(20) + 10;
+                  final int[] randomValues = new int[randomValuesSize];
+
+                  for (int n = 0; n < randomValuesSize; n++) {
+                    randomValues[n] = random.nextInt(DataLoader.VERTEX_COUNT / 1000);
+                  }
+
+                  edge.setProperty(DataLoader.RANDOM_VALUES_FIELD, randomValues);
+                }
+
+                if (addBinaryRecrods) {
+                  final int binarySize = random.nextInt(2 * 65563) + 100;
+                  final byte[] binary = new byte[binarySize];
+                  random.nextBytes(binary);
+
+                  edge.setProperty(DataLoader.BINARY_FIELD, binary);
+                  edge.setProperty(DataLoader.BINARY_FIELD_SIZE, binarySize);
+                }
+
                 prevVertex.save();
                 edge.save();
               }
@@ -128,6 +157,29 @@ public class Loader implements Callable<Void> {
             if (prevVertex != null) {
               OEdge edge = prevVertex.addEdge(firstVertex, DataLoader.CRASH_E);
               edge.setProperty(DataLoader.RING_ID, ringId);
+
+              if (addIndex) {
+                final int randomValue = random.nextInt(DataLoader.VERTEX_COUNT / 1000);
+                edge.setProperty(DataLoader.RANDOM_VALUE_FIELD, randomValue);
+
+                final int randomValuesSize = random.nextInt(20) + 10;
+                final int[] randomValues = new int[randomValuesSize];
+
+                for (int n = 0; n < randomValuesSize; n++) {
+                  randomValues[n] = random.nextInt(DataLoader.VERTEX_COUNT / 1000);
+                }
+
+                edge.setProperty(DataLoader.RANDOM_VALUES_FIELD, randomValues);
+              }
+
+              if (addBinaryRecrods) {
+                final int binarySize = random.nextInt(2 * 65563) + 100;
+                final byte[] binary = new byte[binarySize];
+                random.nextBytes(binary);
+
+                edge.setProperty(DataLoader.BINARY_FIELD, binary);
+                edge.setProperty(DataLoader.BINARY_FIELD_SIZE, binarySize);
+              }
 
               edge.save();
               prevVertex.save();
@@ -158,8 +210,7 @@ public class Loader implements Callable<Void> {
     final List<OVertex> vertices = new ArrayList<>();
 
     for (Integer vId : vertexIds) {
-      try (OResultSet resultSet = session
-          .query("select from " + DataLoader.CRASH_V + " where " + DataLoader.V_ID + " = ?", vId)) {
+      try (OResultSet resultSet = session.query("select from " + DataLoader.CRASH_V + " where " + DataLoader.V_ID + " = ?", vId)) {
         final OResult result = resultSet.next();
 
         assert result.getVertex().isPresent();
