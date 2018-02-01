@@ -53,6 +53,10 @@ public class DataChecker {
 
   private static final Logger logger = LogManager.getFormatterLogger(DataChecker.class);
 
+  static {
+    OGlobalConfiguration.STORAGE_CHECKSUM_MODE.setValue(OChecksumMode.StoreAndThrow);
+  }
+
   public static void main(String[] args) {
     if (args.length > 0 && args[0].equals(ONLY_CHECK_FLAG)) {
       logger.info("Perform db check only");
@@ -93,8 +97,6 @@ public class DataChecker {
     final long timeSeed = System.nanoTime();
     logger.info("TimeSeed: %d", timeSeed);
     final Random random = new Random(timeSeed);
-
-    OGlobalConfiguration.STORAGE_CHECKSUM_MODE.setValue(OChecksumMode.StoreAndThrow);
 
     final Calendar calendar = Calendar.getInstance();
     calendar.add(Calendar.DATE, 7);
