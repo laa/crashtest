@@ -27,7 +27,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -48,9 +50,46 @@ import static com.orientechnologies.crashtest.DataLoader.RING_SIZES;
 import static com.orientechnologies.crashtest.DataLoader.USE_SMALL_WALL;
 
 public class DataChecker {
+  private static final String ONLY_CHECK_FLAG = "-onlyCheck";
+
   private static final Logger logger = LogManager.getFormatterLogger(DataChecker.class);
 
   public static void main(String[] args) {
+    if (args.length > 0 && args[0].equals(ONLY_CHECK_FLAG)) {
+      logger.info("Perform db check only");
+
+      final String dbPath = args[1];
+      final String dbName = args[2];
+
+      final Set<String> argSet = new HashSet<>(Arrays.asList(args).subList(3, args.length));
+
+      boolean addIndexes = false;
+      boolean addBinaryRecords = false;
+
+      if (argSet.contains(DataLoader.ADD_INDEX_FLAG)) {
+        addIndexes = true;
+      }
+
+      if (argSet.contains(DataLoader.ADD_BINARY_RECORDS_FLAG)) {
+        addBinaryRecords = true;
+      }
+
+      executeDbCheckOnly(dbPath, dbName, addIndexes, addBinaryRecords);
+    } else {
+      executeCrashSuite();
+    }
+  }
+
+  private static void executeDbCheckOnly(final String dbPath, final String dbName, final boolean addIndexes,
+      final boolean addBinaryRecords) {
+
+    try (OrientDB orientDB = new OrientDB("plocal:" + dbPath, OrientDBConfig.defaultConfig())) {
+      runDbCheck(dbName, addBinaryRecords, addIndexes, orientDB);
+    }
+
+  }
+
+  private static void executeCrashSuite() {
     logger.info("Crash suite is started");
     final long timeSeed = System.nanoTime();
     logger.info("TimeSeed: %d", timeSeed);
@@ -195,46 +234,50 @@ public class DataChecker {
     logger.info("DB is backedup in file %s", backupPath);
 
     try (OrientDB orientDB = new OrientDB(DATABASES_URL, OrientDBConfig.defaultConfig())) {
-      try (ODatabaseSession session = orientDB.open(DB_NAME, "admin", "admin")) {
-
-        final OIndexManager indexManager = session.getMetadata().getIndexManager();
-        final OIndex<Set<OIdentifiable>> randomValueIndex;
-        final OIndex<Set<OIdentifiable>> randomValuesIndex;
-
-        if (addIndex) {
-          //noinspection unchecked
-          randomValueIndex = (OIndex<Set<OIdentifiable>>) indexManager.getIndex(DataLoader.RANDOM_VALUE_INDEX);
-          //noinspection unchecked
-          randomValuesIndex = (OIndex<Set<OIdentifiable>>) indexManager.getIndex(DataLoader.RANDOM_VALUES_INDEX);
-        } else {
-          randomValueIndex = null;
-          randomValuesIndex = null;
-        }
-
-        AtomicInteger counter = new AtomicInteger();
-        logger.info("Start DB check");
-        try (OResultSet resultSet = session.query("select from " + CRASH_V)) {
-          resultSet.vertexStream().forEach(v -> {
-            final List<Long> ringIds = v.getProperty(RING_IDS);
-            if (ringIds != null) {
-              for (Long ringId : ringIds) {
-                checkRing(v, ringId, addIndex, randomValueIndex, randomValuesIndex, addBinaryRecords);
-              }
-            }
-
-            final int cnt = counter.incrementAndGet();
-            if (cnt > 0 && cnt % 1000 == 0) {
-              logger.info("%d vertexes were checked", cnt);
-            }
-          });
-        }
-      }
+      runDbCheck(DB_NAME, addIndex, addBinaryRecords, orientDB);
 
       logger.info("DB check is completed, removing DB");
       orientDB.drop(DB_NAME);
 
       logger.info("Removing DB backup");
       Files.delete(Paths.get(backupPath));
+    }
+  }
+
+  private static void runDbCheck(final String dbName, boolean addIndex, boolean addBinaryRecords, OrientDB orientDB) {
+    try (ODatabaseSession session = orientDB.open(DB_NAME, "admin", "admin")) {
+
+      final OIndexManager indexManager = session.getMetadata().getIndexManager();
+      final OIndex<Set<OIdentifiable>> randomValueIndex;
+      final OIndex<Set<OIdentifiable>> randomValuesIndex;
+
+      if (addIndex) {
+        //noinspection unchecked
+        randomValueIndex = (OIndex<Set<OIdentifiable>>) indexManager.getIndex(DataLoader.RANDOM_VALUE_INDEX);
+        //noinspection unchecked
+        randomValuesIndex = (OIndex<Set<OIdentifiable>>) indexManager.getIndex(DataLoader.RANDOM_VALUES_INDEX);
+      } else {
+        randomValueIndex = null;
+        randomValuesIndex = null;
+      }
+
+      AtomicInteger counter = new AtomicInteger();
+      logger.info("Start DB check");
+      try (OResultSet resultSet = session.query("select from " + CRASH_V)) {
+        resultSet.vertexStream().forEach(v -> {
+          final List<Long> ringIds = v.getProperty(RING_IDS);
+          if (ringIds != null) {
+            for (Long ringId : ringIds) {
+              checkRing(v, ringId, addIndex, randomValueIndex, randomValuesIndex, addBinaryRecords);
+            }
+          }
+
+          final int cnt = counter.incrementAndGet();
+          if (cnt > 0 && cnt % 1000 == 0) {
+            logger.info("%d vertexes were checked", cnt);
+          }
+        });
+      }
     }
   }
 
@@ -302,7 +345,7 @@ public class DataChecker {
           final int randomValue = e.getProperty(DataLoader.RANDOM_VALUE_FIELD);
 
           Set<OIdentifiable> edges = randomValueIndex.get(randomValue);
-          if (!edges.contains(e)) {
+          if (!edges.contains(e.getIdentity())) {
             throw new IllegalStateException("Random value present inside of edge is absent in index");
           }
 
@@ -311,7 +354,7 @@ public class DataChecker {
           for (int rndVal : randomValues) {
             edges = randomValuesIndex.get(rndVal);
 
-            if (!edges.contains(e)) {
+            if (!edges.contains(e.getIdentity())) {
               throw new IllegalStateException("Random values present inside of edge is absent in index");
             }
           }
