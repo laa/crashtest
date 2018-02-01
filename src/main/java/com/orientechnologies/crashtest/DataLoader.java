@@ -36,16 +36,16 @@ import java.util.concurrent.atomic.AtomicLong;
 public class DataLoader {
   private static final Logger logger = LogManager.getFormatterLogger(DataLoader.class);
 
-  static final int    VERTEX_COUNT  = 500_000;
-  static final String V_ID          = "id";
-  static final String RING_IDS      = "ringIds";
-  static final String RING_SIZES    = "ringSizes";
-  static final String RING_ID       = "ringId";
-  static final String CRASH_V       = "CrashV";
-  static final String CRASH_E       = "CrashE";
-  static final String DB_NAME       = "crashdb";
+  static final int    VERTEX_COUNT   = 10_000_000;
+  static final String V_ID           = "id";
+  static final String RING_IDS       = "ringIds";
+  static final String RING_SIZES     = "ringSizes";
+  static final String RING_ID        = "ringId";
+  static final String CRASH_V        = "CrashV";
+  static final String CRASH_E        = "CrashE";
+  static final String DB_NAME        = "crashdb";
   static final String DATABASES_PATH = "target/databases";
-  static final String DATABASES_URL = "plocal:" + DATABASES_PATH;
+  static final String DATABASES_URL  = "plocal:" + DATABASES_PATH;
 
   public static final String ADD_INDEX_FLAG            = "-addIndex";
   public static final String ADD_BINARY_RECORDS_FLAG   = "-addBinaryRecords";
