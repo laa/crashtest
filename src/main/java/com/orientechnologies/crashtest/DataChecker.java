@@ -115,7 +115,7 @@ public class DataChecker {
 
         final boolean addIndex = true;//random.nextBoolean();
         final boolean addBinaryRecords = true;//random.nextBoolean();
-        final boolean useSmallDiskCache = true;//random.nextBoolean();
+        final boolean useSmallDiskCache = false;//random.nextBoolean();
         final boolean useSmallWal = true; //random.nextBoolean();
 
         if (startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache, useSmallWal)) {
