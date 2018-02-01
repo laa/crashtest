@@ -25,7 +25,6 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -121,7 +120,7 @@ public class DataChecker {
 
         if (startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache, useSmallWal)) {
           logger.info("Wait for 15 min to be sure that all file locks are released");
-          Thread.sleep(5 * 60 * 1000);
+          Thread.sleep(15 * 60 * 1000);
           checkDatabase(addIndex, addBinaryRecords);
         } else {
           return;
