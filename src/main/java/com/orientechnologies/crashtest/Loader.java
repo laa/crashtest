@@ -135,12 +135,7 @@ public class Loader implements Callable<Void> {
                 }
 
                 if (addBinaryRecrods) {
-                  final int binarySize = random.nextInt(2 * 65563) + 100;
-                  final byte[] binary = new byte[binarySize];
-                  random.nextBytes(binary);
-
-                  edge.setProperty(DataLoader.BINARY_FIELD, binary);
-                  edge.setProperty(DataLoader.BINARY_FIELD_SIZE, binarySize);
+                  addBinaryRecord(random, edge);
                 }
 
                 prevVertex.save();
@@ -174,12 +169,7 @@ public class Loader implements Callable<Void> {
               }
 
               if (addBinaryRecrods) {
-                final int binarySize = random.nextInt(1024) + 100;
-                final byte[] binary = new byte[binarySize];
-                random.nextBytes(binary);
-
-                edge.setProperty(DataLoader.BINARY_FIELD, binary);
-                edge.setProperty(DataLoader.BINARY_FIELD_SIZE, binarySize);
+                addBinaryRecord(random, edge);
               }
 
               edge.save();
@@ -205,6 +195,15 @@ public class Loader implements Callable<Void> {
 
     logger.info("Thread %s was stopped, by stop file", Thread.currentThread().getName());
     return null;
+  }
+
+  private void addBinaryRecord(ThreadLocalRandom random, OEdge edge) {
+    final int binarySize = random.nextInt(3*1024) + 100;
+    final byte[] binary = new byte[binarySize];
+    random.nextBytes(binary);
+
+    edge.setProperty(DataLoader.BINARY_FIELD, binary);
+    edge.setProperty(DataLoader.BINARY_FIELD_SIZE, binarySize);
   }
 
   private List<OVertex> fetchVertices(ODatabaseSession session, Collection<Integer> vertexIds) {
