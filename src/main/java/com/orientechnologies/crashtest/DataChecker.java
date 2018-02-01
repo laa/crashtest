@@ -113,10 +113,10 @@ public class DataChecker {
         counter++;
         logger.info("Crash test is started, %d iteration", counter);
 
-        final boolean addIndex = true;//random.nextBoolean();
-        final boolean addBinaryRecords = true;//random.nextBoolean();
-        final boolean useSmallDiskCache = false;//random.nextBoolean();
-        final boolean useSmallWal = true; //random.nextBoolean();
+        final boolean addIndex = random.nextBoolean();
+        final boolean addBinaryRecords = random.nextBoolean();
+        final boolean useSmallDiskCache = random.nextBoolean();
+        final boolean useSmallWal = random.nextBoolean();
 
         if (startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache, useSmallWal)) {
           logger.info("Wait for 15 min to be sure that all file locks are released");
@@ -169,7 +169,7 @@ public class DataChecker {
     processBuilder.inheritIO();
     Process process = processBuilder.start();
 
-    final long secondsToWait = random.nextInt(30 * 60 /*24 hours in seconds*/ - 15) + 15;
+    final long secondsToWait = random.nextInt(120 * 60 /*2 hours in seconds*/ - 15) + 15;
 
     logger.info("DataLoader process is started with parameters (addIndex %b, addBinaryRecords %b, "
             + "useSmallDiskCache %b, useSmallWal %b), waiting for completion during %d seconds...", addIndex, addBinaryRecords,
@@ -216,7 +216,9 @@ public class DataChecker {
   }
 
   private static void checkDatabase(final boolean addIndex, final boolean addBinaryRecords) throws IOException {
-    logger.info("Perform DB backup...");
+    logger.info("DB size is %d mb", calculateDirectorySize(DATABASES_PATH + File.separator + DB_NAME) / (1024 * 1024));
+
+    logger.info("Performing DB backup...");
 
     final String backupDirs = "target" + File.separator + "backups";
     Files.createDirectories(Paths.get(backupDirs));
@@ -241,6 +243,11 @@ public class DataChecker {
       logger.info("Removing DB backup");
       Files.delete(Paths.get(backupPath));
     }
+  }
+
+  private static long calculateDirectorySize(String path) throws IOException {
+    final Path folder = Paths.get(path);
+    return Files.walk(folder).filter(p -> p.toFile().isFile()).mapToLong(p -> p.toFile().length()).sum();
   }
 
   private static void runDbCheck(final String dbName, boolean addIndex, boolean addBinaryRecords, OrientDB orientDB) {
