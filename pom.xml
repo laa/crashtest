@@ -27,7 +27,6 @@
                     <arguments>
                         <argument>-classpath</argument>
                         <classpath/>
-                        <argument>-XX:MaxDirectMemorySize=512g</argument>
                         <argument>-Xmx2048m</argument>
                         <argument>com.orientechnologies.crashtest.DataChecker</argument>
                     </arguments>
