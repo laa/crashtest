@@ -182,7 +182,7 @@ public class DataLoader {
   private static void startCrashThread() throws IOException {
     logger.info("Starting JVM halt thread");
 
-    final ServerSocket serverSocket = new ServerSocket(777, 0, InetAddress.getLocalHost());
+    final ServerSocket serverSocket = new ServerSocket(1025, 0, InetAddress.getLocalHost());
     serverSocket.setReuseAddress(true);
 
     final Thread crashThread = new Thread(() -> {
