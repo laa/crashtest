@@ -173,7 +173,7 @@ public class Loader implements Callable<Void> {
               }
 
               if (addBinaryRecrods) {
-                final int binarySize = random.nextInt(2 * 65563) + 100;
+                final int binarySize = random.nextInt(1024) + 100;
                 final byte[] binary = new byte[binarySize];
                 random.nextBytes(binary);
 
