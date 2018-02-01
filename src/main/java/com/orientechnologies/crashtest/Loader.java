@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
@@ -121,17 +122,7 @@ public class Loader implements Callable<Void> {
                 edge.setProperty(DataLoader.RING_ID, ringId);
 
                 if (addIndex) {
-                  final int randomValue = random.nextInt(DataLoader.VERTEX_COUNT / 1000);
-                  edge.setProperty(DataLoader.RANDOM_VALUE_FIELD, randomValue);
-
-                  final int randomValuesSize = random.nextInt(20) + 10;
-                  final int[] randomValues = new int[randomValuesSize];
-
-                  for (int n = 0; n < randomValuesSize; n++) {
-                    randomValues[n] = random.nextInt(DataLoader.VERTEX_COUNT / 1000);
-                  }
-
-                  edge.setProperty(DataLoader.RANDOM_VALUES_FIELD, Arrays.asList(randomValues));
+                  addRandomValues(random, edge);
                 }
 
                 if (addBinaryRecrods) {
@@ -155,17 +146,7 @@ public class Loader implements Callable<Void> {
               edge.setProperty(DataLoader.RING_ID, ringId);
 
               if (addIndex) {
-                final int randomValue = random.nextInt(DataLoader.VERTEX_COUNT / 1000);
-                edge.setProperty(DataLoader.RANDOM_VALUE_FIELD, randomValue);
-
-                final int randomValuesSize = random.nextInt(20) + 10;
-                final int[] randomValues = new int[randomValuesSize];
-
-                for (int n = 0; n < randomValuesSize; n++) {
-                  randomValues[n] = random.nextInt(DataLoader.VERTEX_COUNT / 1000);
-                }
-
-                edge.setProperty(DataLoader.RANDOM_VALUES_FIELD, Arrays.asList(randomValues));
+                addRandomValues(random, edge);
               }
 
               if (addBinaryRecrods) {
@@ -197,8 +178,22 @@ public class Loader implements Callable<Void> {
     return null;
   }
 
+  private void addRandomValues(ThreadLocalRandom random, OEdge edge) {
+    final int randomValue = random.nextInt(DataLoader.VERTEX_COUNT / 1000);
+    edge.setProperty(DataLoader.RANDOM_VALUE_FIELD, randomValue);
+
+    final int randomValuesSize = random.nextInt(20) + 10;
+    final List<Integer> randomValues = new ArrayList<>();
+
+    for (int n = 0; n < randomValuesSize; n++) {
+      randomValues.add(random.nextInt(DataLoader.VERTEX_COUNT / 1000));
+    }
+
+    edge.setProperty(DataLoader.RANDOM_VALUES_FIELD, randomValues);
+  }
+
   private void addBinaryRecord(ThreadLocalRandom random, OEdge edge) {
-    final int binarySize = random.nextInt(3*1024) + 100;
+    final int binarySize = random.nextInt(3 * 1024) + 100;
     final byte[] binary = new byte[binarySize];
     random.nextBytes(binary);
 
