@@ -193,7 +193,7 @@ public class Loader implements Callable<Void> {
   }
 
   private void addBinaryRecord(ThreadLocalRandom random, OEdge edge) {
-    final int binarySize = random.nextInt(3 * 1024) + 100;
+    final int binarySize = random.nextInt(4 * 1024) + 1024;
     final byte[] binary = new byte[binarySize];
     random.nextBytes(binary);
 
