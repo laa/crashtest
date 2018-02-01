@@ -348,7 +348,7 @@ public class DataChecker {
             throw new IllegalStateException("Random value present inside of edge is absent in index");
           }
 
-          final int[] randomValues = e.getProperty(DataLoader.RANDOM_VALUES_FIELD);
+          final List<Integer> randomValues = e.getProperty(DataLoader.RANDOM_VALUES_FIELD);
 
           for (int rndVal : randomValues) {
             edges = randomValuesIndex.get(rndVal);

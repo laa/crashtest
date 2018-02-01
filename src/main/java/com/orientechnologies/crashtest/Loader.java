@@ -11,6 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -130,7 +131,7 @@ public class Loader implements Callable<Void> {
                     randomValues[n] = random.nextInt(DataLoader.VERTEX_COUNT / 1000);
                   }
 
-                  edge.setProperty(DataLoader.RANDOM_VALUES_FIELD, randomValues);
+                  edge.setProperty(DataLoader.RANDOM_VALUES_FIELD, Arrays.asList(randomValues));
                 }
 
                 if (addBinaryRecrods) {
@@ -169,7 +170,7 @@ public class Loader implements Callable<Void> {
                   randomValues[n] = random.nextInt(DataLoader.VERTEX_COUNT / 1000);
                 }
 
-                edge.setProperty(DataLoader.RANDOM_VALUES_FIELD, randomValues);
+                edge.setProperty(DataLoader.RANDOM_VALUES_FIELD, Arrays.asList(randomValues));
               }
 
               if (addBinaryRecrods) {
