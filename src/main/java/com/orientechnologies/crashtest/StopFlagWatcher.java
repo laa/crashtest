@@ -11,7 +11,7 @@ import java.nio.file.WatchService;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class StopFlagWatcher implements Callable<Void> {
+class StopFlagWatcher implements Callable<Void> {
   private static final Logger logger = LogManager.getFormatterLogger(StopFlagWatcher.class);
 
   private final WatchService  watcher;

@@ -11,18 +11,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class Loader implements Callable<Void> {
+class Loader implements Callable<Void> {
   private static final Logger logger = LogManager.getFormatterLogger(Loader.class);
 
   private static final int MAX_RETRIES = 100_000;
@@ -34,6 +32,8 @@ public class Loader implements Callable<Void> {
   private final boolean addBinaryRecrods;
 
   private final AtomicBoolean stopFlag;
+
+  private List<byte[]> payLoad = new ArrayList<>();
 
   Loader(ODatabasePool pool, AtomicLong idGen, boolean addIndex, boolean addBinaryRecords, AtomicBoolean stopFlag) {
     this.pool = pool;
@@ -158,6 +158,10 @@ public class Loader implements Callable<Void> {
               firstVertex.save();
             }
 
+            if (DataLoader.generateOOM.get()) {
+              addChunkToHeap(random);
+            }
+
             session.commit();
             ringsCounter++;
 
@@ -166,15 +170,22 @@ public class Loader implements Callable<Void> {
             }
           } catch (ONeedRetryException e) {
             //continue;
+          } catch (OutOfMemoryError e) {
+            payLoad = null;
+            System.gc();
+            payLoad = new ArrayList<>();
+
+            logger.error("OOM in loader thread, ignore and repeat");
           }
         }
       }
     } catch (RuntimeException | Error e) {
       logger.error("Error during data load", e);
-      throw e;
     }
 
-    logger.info("Thread %s was stopped, by stop file", Thread.currentThread().getName());
+    if (stopFlag.get()) {
+      logger.info("Thread %s was stopped, by stop file", Thread.currentThread().getName());
+    }
     return null;
   }
 
@@ -193,7 +204,7 @@ public class Loader implements Callable<Void> {
   }
 
   private void addBinaryRecord(ThreadLocalRandom random, OEdge edge) {
-    final int binarySize = random.nextInt(4 * 1024) + 1024;
+    final int binarySize = random.nextInt(25 * 1024) + 1024;
     final byte[] binary = new byte[binarySize];
     random.nextBytes(binary);
 
@@ -224,4 +235,11 @@ public class Loader implements Callable<Void> {
       return result.next().getVertex().get();
     }
   }
+
+  private void addChunkToHeap(ThreadLocalRandom random) {
+    final int chunkSize = random.nextInt(5 * 1024*1024) + 5 * 1024*1024;
+    final byte[] chunk = new byte[chunkSize];
+    payLoad.add(chunk);
+  }
+
 }

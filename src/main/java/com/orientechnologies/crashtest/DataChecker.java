@@ -17,7 +17,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -46,9 +45,8 @@ import static com.orientechnologies.crashtest.DataLoader.DB_NAME;
 import static com.orientechnologies.crashtest.DataLoader.RING_ID;
 import static com.orientechnologies.crashtest.DataLoader.RING_IDS;
 import static com.orientechnologies.crashtest.DataLoader.RING_SIZES;
-import static com.orientechnologies.crashtest.DataLoader.USE_SMALL_WALL;
 
-public class DataChecker {
+class DataChecker {
   private static final String ONLY_CHECK_FLAG = "-onlyCheck";
 
   private static final Logger logger = LogManager.getFormatterLogger(DataChecker.class);
@@ -119,10 +117,11 @@ public class DataChecker {
         final boolean addBinaryRecords = random.nextBoolean();
         final boolean useSmallDiskCache = random.nextBoolean();
         final boolean useSmallWal = random.nextBoolean();
+        final boolean generateOOM = false;
 
-        if (startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache, useSmallWal)) {
-          logger.info("Wait for 15 min to be sure that all file locks are released");
-          Thread.sleep(15 * 60 * 1000);
+        if (startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache, useSmallWal, generateOOM)) {
+          logger.info("Wait for 1 min to be sure that all file locks are released");
+          Thread.sleep(60 * 1000);
           checkDatabase(addIndex, addBinaryRecords);
         } else {
           return;
@@ -137,7 +136,8 @@ public class DataChecker {
   }
 
   private static boolean startAndCrash(final Random random, final boolean addIndex, final boolean addBinaryRecords,
-      final boolean useSmallDiskCache, final boolean useSmallWal) throws IOException, InterruptedException {
+      final boolean useSmallDiskCache, final boolean useSmallWal, final boolean generateOOM)
+      throws IOException, InterruptedException {
 
     String javaExec = System.getProperty("java.home") + "/bin/java";
     javaExec = (new File(javaExec)).getCanonicalPath();
@@ -146,8 +146,18 @@ public class DataChecker {
 
     commands.add(javaExec);
     commands.add("-Xmx2048m");
+
+    if (useSmallDiskCache) {
+      commands.add("-Dstorage.diskCache.bufferSize=4096");
+    }
+
+    if (useSmallWal) {
+      commands.add("-Dstorage.wal.maxSize=4096");
+    }
+
     commands.add("-classpath");
     commands.add(System.getProperty("java.class.path"));
+
     commands.add(DataLoader.class.getName());
 
     if (addIndex) {
@@ -158,27 +168,19 @@ public class DataChecker {
       commands.add(DataLoader.ADD_BINARY_RECORDS_FLAG);
     }
 
-    if (useSmallDiskCache) {
-      commands.add(DataLoader.USE_SMALL_DISK_CACHE_FLAG);
-    }
-
-    if (useSmallWal) {
-      commands.add(USE_SMALL_WALL);
-    }
-
     final ProcessBuilder processBuilder = new ProcessBuilder(commands);
 
     processBuilder.inheritIO();
     Process process = processBuilder.start();
 
-    final long secondsToWait = random.nextInt(120 * 60 /*2 hours in seconds*/ - 15) + 15;
+    final long secondsToWait = random.nextInt( 4 * 60 * 60/*4 hours in seconds*/ - 15) + 15;
 
     logger.info("DataLoader process is started with parameters (addIndex %b, addBinaryRecords %b, "
-            + "useSmallDiskCache %b, useSmallWal %b), waiting for completion during %d seconds...", addIndex, addBinaryRecords,
-        useSmallDiskCache, useSmallWal, secondsToWait);
+            + "useSmallDiskCache %b, useSmallWal %b, generate OOM %b), waiting for completion during %d seconds...", addIndex,
+        addBinaryRecords, useSmallDiskCache, useSmallWal, generateOOM, secondsToWait);
 
     final Timer timer = new Timer();
-    timer.schedule(new CrashCountDownTask(secondsToWait), 30 * 1000, 30 * 1000);
+    timer.schedule(new CrashCountDownTask(secondsToWait, generateOOM), 30 * 1000, 30 * 1000);
 
     final boolean completed = process.waitFor(secondsToWait, TimeUnit.SECONDS);
     if (completed) {
@@ -214,47 +216,32 @@ public class DataChecker {
     final Socket socket = new Socket();
     socket.connect(new InetSocketAddress(InetAddress.getLocalHost(), 1025));
     socket.setSoTimeout(2000);
-    socket.getOutputStream().write(42);
+    OutputStream stream = socket.getOutputStream();
+    stream.write(42);
+    stream.flush();
+    stream.close();
+    socket.close();
   }
 
   private static void checkDatabase(final boolean addIndex, final boolean addBinaryRecords) throws IOException {
     logger.info("DB size is %d mb", calculateDirectorySize(DATABASES_PATH + File.separator + DB_NAME) / (1024 * 1024));
-
-    logger.info("Performing DB backup...");
-
-    final String backupDirs = "target" + File.separator + "backups";
-    Files.createDirectories(Paths.get(backupDirs));
-
-    final String backupPath = backupDirs + File.separator + DB_NAME + ".zip";
-
-    if (Files.exists(Paths.get(backupPath))) {
-      logger.info("DB backup %s is already exist, removing it", backupPath);
-      Files.delete(Paths.get(backupPath));
-    }
-
-    pack(DATABASES_PATH + File.separator + DB_NAME, backupPath);
-
-    logger.info("DB is backedup in file %s", backupPath);
 
     try (OrientDB orientDB = new OrientDB(DATABASES_URL, OrientDBConfig.defaultConfig())) {
       runDbCheck(DB_NAME, addIndex, addBinaryRecords, orientDB);
 
       logger.info("DB check is completed, removing DB");
       orientDB.drop(DB_NAME);
-
-      logger.info("Removing DB backup");
-      Files.delete(Paths.get(backupPath));
     }
   }
 
   private static long calculateDirectorySize(String path) throws IOException {
     final Path folder = Paths.get(path);
-    return Files.walk(folder).filter(p -> p.toFile().isFile()).mapToLong(p -> p.toFile().length()).sum();
+    return Files.walk(folder).filter(p -> p.toFile().isFile() && !p.getFileName().toString().endsWith(".wal"))
+        .mapToLong(p -> p.toFile().length()).sum();
   }
 
   private static void runDbCheck(final String dbName, boolean addIndex, boolean addBinaryRecords, OrientDB orientDB) {
-    try (ODatabaseSession session = orientDB.open(DB_NAME, "admin", "admin")) {
-
+    try (ODatabaseSession session = orientDB.open(dbName, "admin", "admin")) {
       final OIndexManager indexManager = session.getMetadata().getIndexManager();
       final OIndex<Set<OIdentifiable>> randomValueIndex;
       final OIndex<Set<OIdentifiable>> randomValuesIndex;
@@ -306,17 +293,6 @@ public class DataChecker {
         }
       });
     }
-  }
-
-  private static long copy(InputStream source, OutputStream sink) throws IOException {
-    long nread = 0L;
-    byte[] buf = new byte[1024];
-    int n;
-    while ((n = source.read(buf)) > 0) {
-      sink.write(buf, 0, n);
-      nread += n;
-    }
-    return nread;
   }
 
   private static void checkRing(OVertex start, long ringId, final boolean addIndex, OIndex<Set<OIdentifiable>> randomValueIndex,
@@ -391,6 +367,25 @@ public class DataChecker {
 
     if (vCount != ringSize) {
       throw new IllegalStateException("Expected and actual ring sizes are not equal");
+    }
+  }
+
+  static private void copyFolder(File src, File dest) throws IOException {
+    if (src.listFiles() == null || src.listFiles().length == 0)
+      return;
+
+    if (!dest.exists())
+      Files.createDirectories(dest.toPath());
+
+    for (File file : src.listFiles()) {
+      File fileDest = new File(dest, file.getName());
+      if (file.isDirectory()) {
+        copyFolder(file, fileDest);
+      } else {
+        if (fileDest.exists())
+          continue;
+        Files.copy(file.getAbsoluteFile().toPath(), fileDest.getAbsoluteFile().toPath());
+      }
     }
   }
 }

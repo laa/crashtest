@@ -1,6 +1,5 @@
 package com.orientechnologies.crashtest;
 
-import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.db.ODatabasePool;
 import com.orientechnologies.orient.core.db.ODatabaseSession;
 import com.orientechnologies.orient.core.db.ODatabaseType;
@@ -33,7 +32,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class DataLoader {
+class DataLoader {
   private static final Logger logger = LogManager.getFormatterLogger(DataLoader.class);
 
   static final int    VERTEX_COUNT   = 10_000_000;
@@ -47,16 +46,17 @@ public class DataLoader {
   static final String DATABASES_PATH = "target/databases";
   static final String DATABASES_URL  = "plocal:" + DATABASES_PATH;
 
-  public static final String ADD_INDEX_FLAG            = "-addIndex";
-  public static final String ADD_BINARY_RECORDS_FLAG   = "-addBinaryRecords";
-  public static final String USE_SMALL_DISK_CACHE_FLAG = "-useSmallDiskCache";
-  public static final String USE_SMALL_WALL            = "-useSmallWall";
-  public static final String RANDOM_VALUE_FIELD        = "randomValue";
-  public static final String RANDOM_VALUES_FIELD       = "randomValues";
-  public static final String RANDOM_VALUE_INDEX        = "RandomValueIndex";
-  public static final String RANDOM_VALUES_INDEX       = "randomValuesIndex";
-  public static final String BINARY_FIELD              = "binaryField";
-  public static final String BINARY_FIELD_SIZE         = "binaryFieldSize";
+  public static final String ADD_INDEX_FLAG          = "-addIndex";
+  public static final String ADD_BINARY_RECORDS_FLAG = "-addBinaryRecords";
+
+  public static final String RANDOM_VALUE_FIELD  = "randomValue";
+  public static final String RANDOM_VALUES_FIELD = "randomValues";
+  public static final String RANDOM_VALUE_INDEX  = "RandomValueIndex";
+  public static final String RANDOM_VALUES_INDEX = "randomValuesIndex";
+  public static final String BINARY_FIELD        = "binaryField";
+  public static final String BINARY_FIELD_SIZE   = "binaryFieldSize";
+
+  public static final AtomicBoolean generateOOM = new AtomicBoolean();
 
   public static void main(String[] args) throws Exception {
     logger.info("Parsing command lines");
@@ -65,8 +65,6 @@ public class DataLoader {
 
     final boolean addIndex;
     final boolean addBinaryRecords;
-    final boolean useSmallDiskCache;
-    final boolean useSmallWal;
 
     if (argSet.contains(ADD_INDEX_FLAG)) {
       logger.info("Additional indexes will be added to the crash tests");
@@ -82,29 +80,8 @@ public class DataLoader {
       addBinaryRecords = false;
     }
 
-    if (argSet.contains(USE_SMALL_DISK_CACHE_FLAG)) {
-      logger.info("Size of disk cache will be limited to 4 gigabytes");
-      useSmallDiskCache = true;
-    } else {
-      useSmallDiskCache = false;
-    }
-
-    if (argSet.contains(USE_SMALL_WALL)) {
-      logger.info("Size of wal will be limited to 4GB");
-      useSmallWal = true;
-    } else {
-      useSmallWal = false;
-    }
-
-    if (useSmallDiskCache) {
-      OGlobalConfiguration.DISK_CACHE_SIZE.setValue(4 * 1024);
-    }
-
-    if (useSmallWal) {
-      OGlobalConfiguration.WAL_MAX_SIZE.setValue(4096);
-    }
-
-    startCrashThread();
+    startHaltThread();
+    startOOMThread();
 
     final AtomicBoolean stopFlag = new AtomicBoolean();
     final ExecutorService loaderService = Executors.newCachedThreadPool();
@@ -169,7 +146,11 @@ public class DataLoader {
         }
 
         for (Future<Void> future : futures) {
-          future.get();
+          try {
+            future.get();
+          } catch (Exception e) {
+            logger.error("Exception in loader", e);
+          }
         }
 
         stopFlag.set(true);
@@ -177,9 +158,16 @@ public class DataLoader {
     } finally {
       loaderService.shutdown();
     }
+
+    logger.info("All loaders are finished, waiting for a shutdown");
+
+    //noinspection InfiniteLoopStatement
+    while (true) {
+      Thread.sleep(60 * 1000);
+    }
   }
 
-  private static void startCrashThread() throws IOException {
+  private static void startHaltThread() throws IOException {
     logger.info("Starting JVM halt thread");
 
     final ServerSocket serverSocket = new ServerSocket(1025, 0, InetAddress.getLocalHost());
@@ -192,12 +180,16 @@ public class DataLoader {
         final Socket clientSocket = serverSocket.accept();
         final InputStream crashStream = clientSocket.getInputStream();
 
+        //noinspection InfiniteLoopStatement
         while (true) {
           final int value = crashStream.read();
 
           if (value == 42) {
             logger.info("Halt signal is received, trying to halt JVM");
             Runtime.getRuntime().halt(-1);
+          } else if (value == -1) {
+            logger.info("End of stream is reached in halt thread");
+            break;
           } else {
             logger.info("Unknown signal is received by halt thread, listening for next signal");
           }
@@ -205,6 +197,44 @@ public class DataLoader {
 
       } catch (IOException e) {
         logger.error("Error during listening for JVM halt signal", e);
+      }
+    });
+
+    crashThread.setDaemon(true);
+    crashThread.start();
+  }
+
+  private static void startOOMThread() throws IOException {
+    logger.info("Starting OOM thread");
+
+    final ServerSocket serverSocket = new ServerSocket(1036, 0, InetAddress.getLocalHost());
+    serverSocket.setReuseAddress(true);
+
+    final Thread crashThread = new Thread(() -> {
+      try {
+        logger.info("OOM thread is listening for the signal");
+
+        final Socket clientSocket = serverSocket.accept();
+        final InputStream oomStream = clientSocket.getInputStream();
+
+        //noinspection InfiniteLoopStatement
+        while (true) {
+          final int value = oomStream.read();
+
+          if (value == 42) {
+            logger.info("OOM signal is received, trying to pollute the heap");
+            generateOOM.set(true);
+            break;
+          } else if (value == -1) {
+            logger.info("End of stream is reached in OOM thread");
+            break;
+          } else {
+            logger.info("Unknown signal is received by OOM thread, listening for next signal");
+          }
+        }
+
+      } catch (IOException e) {
+        logger.error("Error during listening for OOM signal", e);
       }
     });
 
