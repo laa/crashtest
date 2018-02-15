@@ -113,10 +113,10 @@ class DataChecker {
         counter++;
         logger.info("Crash test is started, %d iteration", counter);
 
-        final boolean addIndex = random.nextBoolean();
-        final boolean addBinaryRecords = random.nextBoolean();
-        final boolean useSmallDiskCache = random.nextBoolean();
-        final boolean useSmallWal = random.nextBoolean();
+        final boolean addIndex = true;//random.nextBoolean();
+        final boolean addBinaryRecords = false;//random.nextBoolean();
+        final boolean useSmallDiskCache = false;//random.nextBoolean();
+        final boolean useSmallWal = true;//random.nextBoolean();
         final boolean generateOOM = false;
 
         if (startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache, useSmallWal, generateOOM)) {
@@ -173,7 +173,7 @@ class DataChecker {
     processBuilder.inheritIO();
     Process process = processBuilder.start();
 
-    final long secondsToWait = random.nextInt( 4 * 60 * 60/*4 hours in seconds*/ - 15) + 15;
+    final long secondsToWait = 9769;//random.nextInt( 4 * 60 * 60/*4 hours in seconds*/ - 15) + 15;
 
     logger.info("DataLoader process is started with parameters (addIndex %b, addBinaryRecords %b, "
             + "useSmallDiskCache %b, useSmallWal %b, generate OOM %b), waiting for completion during %d seconds...", addIndex,
