@@ -1,5 +1,6 @@
 package com.orientechnologies.crashtest;
 
+import com.orientechnologies.common.io.OFileUtils;
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.db.ODatabaseSession;
 import com.orientechnologies.orient.core.db.OrientDB;
@@ -50,6 +51,8 @@ class DataChecker {
   private static final String ONLY_CHECK_FLAG = "-onlyCheck";
 
   private static final Logger logger = LogManager.getFormatterLogger(DataChecker.class);
+
+  private static final Path backupPath = Paths.get("/media/hdd/crash_backup");
 
   static {
     OGlobalConfiguration.STORAGE_CHECKSUM_MODE.setValue(OChecksumMode.StoreAndThrow);
@@ -116,12 +119,25 @@ class DataChecker {
         final boolean addIndex = true;//random.nextBoolean();
         final boolean addBinaryRecords = false;//random.nextBoolean();
         final boolean useSmallDiskCache = false;//random.nextBoolean();
-        final boolean useSmallWal = true;//random.nextBoolean();
+        final boolean useSmallWal = false;//random.nextBoolean();
         final boolean generateOOM = false;
 
         if (startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache, useSmallWal, generateOOM)) {
           logger.info("Wait for 1 min to be sure that all file locks are released");
           Thread.sleep(60 * 1000);
+
+          logger.info("DB size is %d mb", calculateDirectorySize(DATABASES_PATH + File.separator + DB_NAME) / (1024 * 1024));
+
+          logger.info("Perform database backup to the %s", backupPath);
+          if (Files.exists(backupPath)) {
+            OFileUtils.deleteRecursively(backupPath.toFile());
+          }
+
+          Files.createDirectories(backupPath);
+          copyFolder(new File(DATABASES_PATH + File.separator + DB_NAME), backupPath.toFile());
+          logger.info("Backup is completed");
+
+
           checkDatabase(addIndex, addBinaryRecords);
         } else {
           return;
@@ -224,8 +240,6 @@ class DataChecker {
   }
 
   private static void checkDatabase(final boolean addIndex, final boolean addBinaryRecords) throws IOException {
-    logger.info("DB size is %d mb", calculateDirectorySize(DATABASES_PATH + File.separator + DB_NAME) / (1024 * 1024));
-
     try (OrientDB orientDB = new OrientDB(DATABASES_URL, OrientDBConfig.defaultConfig())) {
       runDbCheck(DB_NAME, addIndex, addBinaryRecords, orientDB);
 

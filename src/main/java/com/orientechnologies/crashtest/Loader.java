@@ -68,7 +68,7 @@ class Loader implements Callable<Void> {
           } else {
             ringsDeletionCounter += removeRing(random);
 
-            if (ringsDeletionCounter > 0 && ringsDeletionCounter % 10 == 0) {
+            if (ringsDeletionCounter > 0 && ringsDeletionCounter % 100 == 0) {
               logger.info("%s thread, %d rings were deleted", Thread.currentThread().getName(), ringsDeletionCounter);
             }
           }
