@@ -116,10 +116,10 @@ class DataChecker {
         counter++;
         logger.info("Crash test is started, %d iteration", counter);
 
-        final boolean addIndex = true;//random.nextBoolean();
-        final boolean addBinaryRecords = false;//random.nextBoolean();
-        final boolean useSmallDiskCache = false;//random.nextBoolean();
-        final boolean useSmallWal = false;//random.nextBoolean();
+        final boolean addIndex = random.nextBoolean();
+        final boolean addBinaryRecords = random.nextBoolean();
+        final boolean useSmallDiskCache = random.nextBoolean();
+        final boolean useSmallWal = random.nextBoolean();
         final boolean generateOOM = false;
 
         if (startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache, useSmallWal, generateOOM)) {
