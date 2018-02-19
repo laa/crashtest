@@ -189,7 +189,7 @@ class DataChecker {
     processBuilder.inheritIO();
     Process process = processBuilder.start();
 
-    final long secondsToWait = 9769;//random.nextInt( 4 * 60 * 60/*4 hours in seconds*/ - 15) + 15;
+    final long secondsToWait = random.nextInt( 4 * 60 * 60/*4 hours in seconds*/ - 15) + 15;
 
     logger.info("DataLoader process is started with parameters (addIndex %b, addBinaryRecords %b, "
             + "useSmallDiskCache %b, useSmallWal %b, generate OOM %b), waiting for completion during %d seconds...", addIndex,
