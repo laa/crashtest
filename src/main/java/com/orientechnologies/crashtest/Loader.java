@@ -31,17 +31,21 @@ class Loader implements Callable<Void> {
   private final boolean addIndex;
 
   private final boolean addBinaryRecrods;
+  
+  private final boolean addLuceneIndex;
 
   private final AtomicBoolean stopFlag;
 
   private List<byte[]> payLoad = new ArrayList<>();
 
-  Loader(ODatabasePool pool, AtomicLong idGen, boolean addIndex, boolean addBinaryRecords, AtomicBoolean stopFlag) {
+  Loader(ODatabasePool pool, AtomicLong idGen, boolean addIndex, 
+          boolean addBinaryRecords, boolean addLuceneIndex, AtomicBoolean stopFlag) {
     this.pool = pool;
     this.idGen = idGen;
     this.addIndex = addIndex;
     this.addBinaryRecrods = addBinaryRecords;
     this.stopFlag = stopFlag;
+    this.addLuceneIndex = addLuceneIndex;
   }
 
   @Override
@@ -254,6 +258,10 @@ class Loader implements Callable<Void> {
             edge.save();
           }
 
+          if (addLuceneIndex){
+            addRandomValueToLuceneIndex(random, vertex);
+          }
+          
           vertex.save();
           prevVertex = vertex;
 
@@ -315,6 +323,12 @@ class Loader implements Callable<Void> {
 
     edge.setProperty(DataLoader.BINARY_FIELD, binary);
     edge.setProperty(DataLoader.BINARY_FIELD_SIZE, binarySize);
+  }
+  
+  private void addRandomValueToLuceneIndex(ThreadLocalRandom random, OVertex vertex){
+    String fieldVal = DataLoader.LUCENE_TEST_FIELD_PREFIX + random.nextInt();
+    vertex.setProperty(DataLoader.LUCENE_TEST_FIELD_NAME, fieldVal);
+    vertex.setProperty(DataLoader.LUCENE_TEST_CONTROL_FIELD, fieldVal);
   }
 
   private List<OVertex> fetchVertices(ODatabaseSession session, Collection<Integer> vertexIds) {

@@ -5,6 +5,7 @@ import com.orientechnologies.orient.core.db.ODatabaseSession;
 import com.orientechnologies.orient.core.db.ODatabaseType;
 import com.orientechnologies.orient.core.db.OrientDB;
 import com.orientechnologies.orient.core.db.OrientDBConfig;
+import com.orientechnologies.orient.core.index.OIndex;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.OVertex;
@@ -47,6 +48,7 @@ class DataLoader {
   static final String DATABASES_URL  = "plocal:" + DATABASES_PATH;
 
   public static final String ADD_INDEX_FLAG          = "-addIndex";
+  public static final String ADD_LUCENE_INDEX_FLAG   = "-addLuceneIndex";
   public static final String ADD_BINARY_RECORDS_FLAG = "-addBinaryRecords";
 
   public static final String RANDOM_VALUE_FIELD  = "randomValue";
@@ -55,6 +57,12 @@ class DataLoader {
   public static final String RANDOM_VALUES_INDEX = "randomValuesIndex";
   public static final String BINARY_FIELD        = "binaryField";
   public static final String BINARY_FIELD_SIZE   = "binaryFieldSize";
+  
+  public static final String LUCENE_TEST_FIELD_PREFIX = "val_";
+  public static final String LUCENE_TEST_FIELD_NAME = "LuceneTestFieldName";
+  public static final String LUCENE_RANDOM_VAL_INDEX = CRASH_V + "." + LUCENE_TEST_FIELD_NAME;
+  public static final String LUCENE_TEST_CONTROL_FIELD = "LuceneTestControlField";
+//  public static final int LUCENE_DOCUMENTS_COUNT = 100_000;
 
   public static final AtomicBoolean generateOOM = new AtomicBoolean();
 
@@ -65,12 +73,20 @@ class DataLoader {
 
     final boolean addIndex;
     final boolean addBinaryRecords;
+    final boolean addLuceneIndex;
 
     if (argSet.contains(ADD_INDEX_FLAG)) {
       logger.info("Additional indexes will be added to the crash tests");
       addIndex = true;
     } else {
       addIndex = false;
+    }
+    
+    if (argSet.contains(ADD_LUCENE_INDEX_FLAG)) {
+      logger.info("Additional lucene indexes will be added to the crash tests");
+      addLuceneIndex = true;
+    } else {
+      addLuceneIndex = false;
     }
 
     if (argSet.contains(ADD_BINARY_RECORDS_FLAG)) {
@@ -110,6 +126,12 @@ class DataLoader {
           eCls.createIndex(RANDOM_VALUE_INDEX, OClass.INDEX_TYPE.NOTUNIQUE, RANDOM_VALUE_FIELD);
           eCls.createIndex(RANDOM_VALUES_INDEX, OClass.INDEX_TYPE.NOTUNIQUE_HASH_INDEX, RANDOM_VALUES_FIELD);
         }
+        
+        if (addLuceneIndex){                              
+          vCls.createProperty(LUCENE_TEST_FIELD_NAME, OType.STRING);                    
+          OIndex<?> index = vCls.createIndex(LUCENE_RANDOM_VAL_INDEX, "FULLTEXT", null, null, "LUCENE", new String[] {LUCENE_TEST_FIELD_NAME});
+          vCls.createProperty(LUCENE_TEST_CONTROL_FIELD, OType.STRING);
+        }
 
         if (addBinaryRecords) {
           eCls.createProperty(BINARY_FIELD, OType.BINARY);
@@ -142,7 +164,7 @@ class DataLoader {
         logger.info("%d vertexes were created", VERTEX_COUNT);
         logger.info("Start rings creation");
         for (int i = 0; i < 8; i++) {
-          futures.add(loaderService.submit(new Loader(pool, idGen, addIndex, addBinaryRecords, stopFlag)));
+          futures.add(loaderService.submit(new Loader(pool, idGen, addIndex, addBinaryRecords, addLuceneIndex, stopFlag)));
         }
 
         for (Future<Void> future : futures) {

@@ -46,6 +46,8 @@ import static com.orientechnologies.crashtest.DataLoader.DB_NAME;
 import static com.orientechnologies.crashtest.DataLoader.RING_ID;
 import static com.orientechnologies.crashtest.DataLoader.RING_IDS;
 import static com.orientechnologies.crashtest.DataLoader.RING_SIZES;
+import com.orientechnologies.orient.core.id.ORID;
+import java.util.Objects;
 
 class DataChecker {
   private static final String ONLY_CHECK_FLAG = "-onlyCheck";
@@ -69,7 +71,8 @@ class DataChecker {
 
       boolean addIndexes = false;
       boolean addBinaryRecords = false;
-
+      boolean addLuceneIndex = false;
+      
       if (argSet.contains(DataLoader.ADD_INDEX_FLAG)) {
         addIndexes = true;
       }
@@ -77,18 +80,22 @@ class DataChecker {
       if (argSet.contains(DataLoader.ADD_BINARY_RECORDS_FLAG)) {
         addBinaryRecords = true;
       }
+      
+      if (argSet.contains(DataLoader.ADD_LUCENE_INDEX_FLAG)) {
+        addLuceneIndex = true;
+      }
 
-      executeDbCheckOnly(dbPath, dbName, addIndexes, addBinaryRecords);
+      executeDbCheckOnly(dbPath, dbName, addIndexes, addBinaryRecords, addLuceneIndex);
     } else {
       executeCrashSuite();
     }
   }
 
   private static void executeDbCheckOnly(final String dbPath, final String dbName, final boolean addIndexes,
-      final boolean addBinaryRecords) {
+      final boolean addBinaryRecords, final boolean addLuceneIndex) {
 
     try (OrientDB orientDB = new OrientDB("plocal:" + dbPath, OrientDBConfig.defaultConfig())) {
-      runDbCheck(dbName, addBinaryRecords, addIndexes, orientDB);
+      runDbCheck(dbName, addBinaryRecords, addIndexes, addLuceneIndex, orientDB);
     }
 
   }
@@ -118,6 +125,7 @@ class DataChecker {
 
         final boolean addIndex = random.nextBoolean();
         final boolean addBinaryRecords = random.nextBoolean();
+        final boolean addLuceneIndex = true;//random.nextBoolean();
         final boolean useSmallDiskCache = random.nextBoolean();
         final boolean useSmallWal = random.nextBoolean();
         final boolean generateOOM = false;
@@ -138,7 +146,7 @@ class DataChecker {
           logger.info("Backup is completed");
 
 
-          checkDatabase(addIndex, addBinaryRecords);
+          checkDatabase(addIndex, addBinaryRecords, addLuceneIndex);
         } else {
           return;
         }
@@ -239,9 +247,9 @@ class DataChecker {
     socket.close();
   }
 
-  private static void checkDatabase(final boolean addIndex, final boolean addBinaryRecords) throws IOException {
+  private static void checkDatabase(final boolean addIndex, final boolean addBinaryRecords, final boolean addLuceneIndex) throws IOException {
     try (OrientDB orientDB = new OrientDB(DATABASES_URL, OrientDBConfig.defaultConfig())) {
-      runDbCheck(DB_NAME, addIndex, addBinaryRecords, orientDB);
+      runDbCheck(DB_NAME, addIndex, addBinaryRecords, addLuceneIndex, orientDB);
 
       logger.info("DB check is completed, removing DB");
       orientDB.drop(DB_NAME);
@@ -254,11 +262,13 @@ class DataChecker {
         .mapToLong(p -> p.toFile().length()).sum();
   }
 
-  private static void runDbCheck(final String dbName, boolean addIndex, boolean addBinaryRecords, OrientDB orientDB) {
+  private static void runDbCheck(final String dbName, boolean addIndex, boolean addBinaryRecords, 
+          final boolean addLuceneIndex, OrientDB orientDB) {
     try (ODatabaseSession session = orientDB.open(dbName, "admin", "admin")) {
       final OIndexManager indexManager = session.getMetadata().getIndexManager();
       final OIndex<Set<OIdentifiable>> randomValueIndex;
       final OIndex<Set<OIdentifiable>> randomValuesIndex;
+      final OIndex<Set<OIdentifiable>> luceneRandomValueIndex;
 
       if (addIndex) {
         //noinspection unchecked
@@ -268,6 +278,13 @@ class DataChecker {
       } else {
         randomValueIndex = null;
         randomValuesIndex = null;
+      }
+      
+      if (addLuceneIndex){
+        luceneRandomValueIndex = (OIndex<Set<OIdentifiable>>) indexManager.getIndex(DataLoader.LUCENE_RANDOM_VAL_INDEX);
+      }
+      else{
+        luceneRandomValueIndex = null;
       }
 
       AtomicInteger counter = new AtomicInteger();
@@ -280,6 +297,8 @@ class DataChecker {
               checkRing(v, ringId, addIndex, randomValueIndex, randomValuesIndex, addBinaryRecords);
             }
           }
+          
+          checkLuceneIndexValues(v, luceneRandomValueIndex);
 
           final int cnt = counter.incrementAndGet();
           if (cnt > 0 && cnt % 1000 == 0) {
@@ -287,6 +306,8 @@ class DataChecker {
           }
         });
       }
+      
+      checkLuceneIndexPairs(session, luceneRandomValueIndex);
     }
   }
 
@@ -400,6 +421,50 @@ class DataChecker {
           continue;
         Files.copy(file.getAbsoluteFile().toPath(), fileDest.getAbsoluteFile().toPath());
       }
+    }
+  }
+
+  private static void checkLuceneIndexValues(OVertex v, OIndex<Set<OIdentifiable>> luceneRandomValueIndex) {    
+    if (luceneRandomValueIndex == null){
+      return;
+    }
+    
+    ORID rid = v.getIdentity();
+    String controlValue = v.getProperty(DataLoader.LUCENE_TEST_CONTROL_FIELD);
+    Set<OIdentifiable> indexedrecords = luceneRandomValueIndex.get(controlValue);
+    if (!indexedrecords.contains(rid)){
+      throw new IllegalStateException("Control value not found in Lucene index");
+    }
+    
+  }
+  
+  /**
+   * check if each value from index has equal value in database
+   * @param db
+   * @param luceneRandomValueIndex 
+   */
+  private static void checkLuceneIndexPairs(ODatabaseSession db, OIndex<Set<OIdentifiable>> luceneRandomValueIndex){
+    if (luceneRandomValueIndex == null){
+      return;
+    }    
+    String indexName = luceneRandomValueIndex.getName();
+    String query = "SELECT COUNT(*) as cnt FROM " + DataLoader.CRASH_V + " WHERE SEARCH_INDEX(\"" + indexName + "\", \"" + DataLoader.LUCENE_TEST_FIELD_PREFIX + "*\") = true";
+    OResultSet rs = db.query(query, (Object[])null);
+    Integer countInIndex = null;
+    if (rs.hasNext()){
+      countInIndex = rs.next().getProperty("cnt");      
+    }
+    rs.close();
+    
+    query = "SELECT COUNT(*) as cnt FROM " + DataLoader.CRASH_V + " WHERE " + DataLoader.LUCENE_TEST_CONTROL_FIELD + " IS NOT NULL";
+    Integer documentWithControlFieldSetCount = null;
+    if (rs.hasNext()){
+      documentWithControlFieldSetCount = rs.next().getProperty("cnt");      
+    }
+    rs.close();
+    
+    if (!Objects.equals(countInIndex, documentWithControlFieldSetCount)){
+      throw new IllegalStateException("Number of control values doesn't match number of index entries");
     }
   }
 }
