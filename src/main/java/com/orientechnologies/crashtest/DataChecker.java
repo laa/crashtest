@@ -130,7 +130,7 @@ class DataChecker {
         final boolean useSmallWal = random.nextBoolean();
         final boolean generateOOM = false;
 
-        if (startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache, useSmallWal, generateOOM)) {
+        if (startAndCrash(random, addIndex, addBinaryRecords, addLuceneIndex, useSmallDiskCache, useSmallWal, generateOOM)) {
           logger.info("Wait for 1 min to be sure that all file locks are released");
           Thread.sleep(60 * 1000);
 
@@ -160,6 +160,7 @@ class DataChecker {
   }
 
   private static boolean startAndCrash(final Random random, final boolean addIndex, final boolean addBinaryRecords,
+      final boolean addLuceneindex,
       final boolean useSmallDiskCache, final boolean useSmallWal, final boolean generateOOM)
       throws IOException, InterruptedException {
 
@@ -190,6 +191,10 @@ class DataChecker {
 
     if (addBinaryRecords) {
       commands.add(DataLoader.ADD_BINARY_RECORDS_FLAG);
+    }
+    
+    if (addLuceneindex){
+      commands.add(DataLoader.ADD_LUCENE_INDEX_FLAG);
     }
 
     final ProcessBuilder processBuilder = new ProcessBuilder(commands);
