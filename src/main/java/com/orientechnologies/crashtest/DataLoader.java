@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
 class DataLoader {
   private static final Logger logger = LogManager.getFormatterLogger(DataLoader.class);
 
-  static final int    VERTEX_COUNT   = 10_000_000;
+  static final int    VERTEX_COUNT   = 10_000;
   static final String V_ID           = "id";
   static final String RING_IDS       = "ringIds";
   static final String RING_SIZES     = "ringSizes";

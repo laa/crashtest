@@ -46,6 +46,7 @@ class Loader implements Callable<Void> {
     this.addBinaryRecrods = addBinaryRecords;
     this.stopFlag = stopFlag;
     this.addLuceneIndex = addLuceneIndex;
+    logger.info("Adding luceen index: " + this.addLuceneIndex);
   }
 
   @Override
@@ -259,6 +260,7 @@ class Loader implements Callable<Void> {
           }
 
           if (addLuceneIndex){
+            logger.info("Adding VALUE to luceen index: " + this.addLuceneIndex);
             addRandomValueToLuceneIndex(random, vertex);
           }
           
@@ -326,6 +328,7 @@ class Loader implements Callable<Void> {
   }
   
   private void addRandomValueToLuceneIndex(ThreadLocalRandom random, OVertex vertex){
+    logger.info("Added to lucene index");
     String fieldVal = DataLoader.LUCENE_TEST_FIELD_PREFIX + random.nextInt();
     vertex.setProperty(DataLoader.LUCENE_TEST_FIELD_NAME, fieldVal);
     vertex.setProperty(DataLoader.LUCENE_TEST_CONTROL_FIELD, fieldVal);

@@ -54,7 +54,7 @@ class DataChecker {
 
   private static final Logger logger = LogManager.getFormatterLogger(DataChecker.class);
 
-  private static final Path backupPath = Paths.get("/media/hdd/crash_backup");
+  private static final Path backupPath = Paths.get("target/crash_backup");
 
   static {
     OGlobalConfiguration.STORAGE_CHECKSUM_MODE.setValue(OChecksumMode.StoreAndThrow);
@@ -202,11 +202,11 @@ class DataChecker {
     processBuilder.inheritIO();
     Process process = processBuilder.start();
 
-    final long secondsToWait = random.nextInt( 4 * 60 * 60/*4 hours in seconds*/ - 15) + 15;
+    final long secondsToWait = 60;//random.nextInt( 4 * 60 * 60/*4 hours in seconds*/ - 15) + 15;
 
     logger.info("DataLoader process is started with parameters (addIndex %b, addBinaryRecords %b, "
-            + "useSmallDiskCache %b, useSmallWal %b, generate OOM %b), waiting for completion during %d seconds...", addIndex,
-        addBinaryRecords, useSmallDiskCache, useSmallWal, generateOOM, secondsToWait);
+            + "addLuceneIndex %b, useSmallDiskCache %b, useSmallWal %b, generate OOM %b), waiting for completion during %d seconds...", addIndex,
+        addBinaryRecords, addLuceneindex, useSmallDiskCache, useSmallWal, generateOOM, secondsToWait);
 
     final Timer timer = new Timer();
     timer.schedule(new CrashCountDownTask(secondsToWait, generateOOM), 30 * 1000, 30 * 1000);
@@ -437,6 +437,10 @@ class DataChecker {
     ORID rid = v.getIdentity();
     String controlValue = v.getProperty(DataLoader.LUCENE_TEST_CONTROL_FIELD);
     Set<OIdentifiable> indexedrecords = luceneRandomValueIndex.get(controlValue);
+    if (indexedrecords == null || controlValue == null){
+      int a  = 0;
+      ++a;
+    }
     if (!indexedrecords.contains(rid)){
       throw new IllegalStateException("Control value not found in Lucene index");
     }
