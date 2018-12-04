@@ -46,9 +46,7 @@ import static com.orientechnologies.crashtest.DataLoader.DB_NAME;
 import static com.orientechnologies.crashtest.DataLoader.RING_ID;
 import static com.orientechnologies.crashtest.DataLoader.RING_IDS;
 import static com.orientechnologies.crashtest.DataLoader.RING_SIZES;
-import com.orientechnologies.lucene.collections.OLuceneResultSet;
 import com.orientechnologies.orient.core.id.ORID;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.Iterator;
 import java.util.Objects;
 
@@ -57,7 +55,7 @@ class DataChecker {
 
   private static final Logger logger = LogManager.getFormatterLogger(DataChecker.class);
 
-  private static final Path backupPath = Paths.get("target/crash_backup");
+  private static final Path backupPath = Paths.get("/media/hdd/crash_backup");
 
   static {
     OGlobalConfiguration.STORAGE_CHECKSUM_MODE.setValue(OChecksumMode.StoreAndThrow);
@@ -128,7 +126,7 @@ class DataChecker {
 
         final boolean addIndex = random.nextBoolean();
         final boolean addBinaryRecords = random.nextBoolean();
-        final boolean addLuceneIndex = true;//random.nextBoolean();
+        final boolean addLuceneIndex = random.nextBoolean();
         final boolean useSmallDiskCache = random.nextBoolean();
         final boolean useSmallWal = random.nextBoolean();
         final boolean generateOOM = false;
@@ -205,7 +203,7 @@ class DataChecker {
     processBuilder.inheritIO();
     Process process = processBuilder.start();
 
-    final long secondsToWait = 60;//random.nextInt( 4 * 60 * 60/*4 hours in seconds*/ - 15) + 15;
+    final long secondsToWait = random.nextInt( 4 * 60 * 60/*4 hours in seconds*/ - 15) + 15;
 
     logger.info("DataLoader process is started with parameters (addIndex %b, addBinaryRecords %b, "
             + "addLuceneIndex %b, useSmallDiskCache %b, useSmallWal %b, generate OOM %b), waiting for completion during %d seconds...", addIndex,
