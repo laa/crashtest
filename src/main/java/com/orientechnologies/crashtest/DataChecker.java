@@ -46,7 +46,10 @@ import static com.orientechnologies.crashtest.DataLoader.DB_NAME;
 import static com.orientechnologies.crashtest.DataLoader.RING_ID;
 import static com.orientechnologies.crashtest.DataLoader.RING_IDS;
 import static com.orientechnologies.crashtest.DataLoader.RING_SIZES;
+import com.orientechnologies.lucene.collections.OLuceneResultSet;
 import com.orientechnologies.orient.core.id.ORID;
+import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.util.Iterator;
 import java.util.Objects;
 
 class DataChecker {
@@ -436,15 +439,26 @@ class DataChecker {
     
     ORID rid = v.getIdentity();
     String controlValue = v.getProperty(DataLoader.LUCENE_TEST_CONTROL_FIELD);
-    Set<OIdentifiable> indexedrecords = luceneRandomValueIndex.get(controlValue);
-    if (indexedrecords == null || controlValue == null){
-      int a  = 0;
-      ++a;
+    
+    if (controlValue == null){
+      return;
     }
-    if (!indexedrecords.contains(rid)){
+    
+    Set<OIdentifiable> indexedrecords = luceneRandomValueIndex.get(controlValue);
+    if (indexedrecords == null){
       throw new IllegalStateException("Control value not found in Lucene index");
     }
     
+    Iterator<OIdentifiable> luceneResultSetIter = indexedrecords.iterator();
+    while (luceneResultSetIter.hasNext()){
+      OIdentifiable current = luceneResultSetIter.next();
+      if (Objects.equals(current, rid)){
+        return;
+      }
+    }    
+    
+    //this means that id is not found
+    throw new IllegalStateException("Control value not found in Lucene index");        
   }
   
   /**
@@ -459,14 +473,15 @@ class DataChecker {
     String indexName = luceneRandomValueIndex.getName();
     String query = "SELECT COUNT(*) as cnt FROM " + DataLoader.CRASH_V + " WHERE SEARCH_INDEX(\"" + indexName + "\", \"" + DataLoader.LUCENE_TEST_FIELD_PREFIX + "*\") = true";
     OResultSet rs = db.query(query, (Object[])null);
-    Integer countInIndex = null;
+    Long countInIndex = null;
     if (rs.hasNext()){
       countInIndex = rs.next().getProperty("cnt");      
     }
     rs.close();
     
     query = "SELECT COUNT(*) as cnt FROM " + DataLoader.CRASH_V + " WHERE " + DataLoader.LUCENE_TEST_CONTROL_FIELD + " IS NOT NULL";
-    Integer documentWithControlFieldSetCount = null;
+    Long documentWithControlFieldSetCount = null;
+    rs = db.query(query, (Object[])null);
     if (rs.hasNext()){
       documentWithControlFieldSetCount = rs.next().getProperty("cnt");      
     }
@@ -474,6 +489,6 @@ class DataChecker {
     
     if (!Objects.equals(countInIndex, documentWithControlFieldSetCount)){
       throw new IllegalStateException("Number of control values doesn't match number of index entries");
-    }
+    }        
   }
 }

@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 class Loader implements Callable<Void> {
@@ -37,6 +38,8 @@ class Loader implements Callable<Void> {
   private final AtomicBoolean stopFlag;
 
   private List<byte[]> payLoad = new ArrayList<>();
+  
+  private final AtomicInteger luceneIndexEntryCounter = new AtomicInteger(0);
 
   Loader(ODatabasePool pool, AtomicLong idGen, boolean addIndex, 
           boolean addBinaryRecords, boolean addLuceneIndex, AtomicBoolean stopFlag) {
@@ -327,8 +330,7 @@ class Loader implements Callable<Void> {
     edge.setProperty(DataLoader.BINARY_FIELD_SIZE, binarySize);
   }
   
-  private void addRandomValueToLuceneIndex(ThreadLocalRandom random, OVertex vertex){
-    logger.info("Added to lucene index");
+  private void addRandomValueToLuceneIndex(ThreadLocalRandom random, OVertex vertex){    
     String fieldVal = DataLoader.LUCENE_TEST_FIELD_PREFIX + random.nextInt();
     vertex.setProperty(DataLoader.LUCENE_TEST_FIELD_NAME, fieldVal);
     vertex.setProperty(DataLoader.LUCENE_TEST_CONTROL_FIELD, fieldVal);

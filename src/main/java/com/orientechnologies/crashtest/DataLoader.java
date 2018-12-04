@@ -62,7 +62,6 @@ class DataLoader {
   public static final String LUCENE_TEST_FIELD_NAME = "LuceneTestFieldName";
   public static final String LUCENE_RANDOM_VAL_INDEX = CRASH_V + "." + LUCENE_TEST_FIELD_NAME;
   public static final String LUCENE_TEST_CONTROL_FIELD = "LuceneTestControlField";
-//  public static final int LUCENE_DOCUMENTS_COUNT = 100_000;
 
   public static final AtomicBoolean generateOOM = new AtomicBoolean();
 
