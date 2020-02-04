@@ -52,7 +52,7 @@ class DataChecker {
 
   private static final Logger logger = LogManager.getFormatterLogger(DataChecker.class);
 
-  private static final Path backupPath = Paths.get("/media/hdd/crash_backup");
+  private static final Path backupPath = Paths.get("target/crash_backup");
 
   static {
     OGlobalConfiguration.STORAGE_CHECKSUM_MODE.setValue(OChecksumMode.StoreAndThrow);
