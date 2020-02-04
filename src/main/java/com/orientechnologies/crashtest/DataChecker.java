@@ -128,14 +128,14 @@ class DataChecker {
 
           logger.info("DB size is %d mb", calculateDirectorySize(DATABASES_PATH + File.separator + DB_NAME) / (1024 * 1024));
 
-          logger.info("Perform database backup to the %s", backupPath);
-          if (Files.exists(backupPath)) {
-            OFileUtils.deleteRecursively(backupPath.toFile());
-          }
-
-          Files.createDirectories(backupPath);
-          copyFolder(new File(DATABASES_PATH + File.separator + DB_NAME), backupPath.toFile());
-          logger.info("Backup is completed");
+//          logger.info("Perform database backup to the %s", backupPath);
+//          if (Files.exists(backupPath)) {
+//            OFileUtils.deleteRecursively(backupPath.toFile());
+//          }
+//
+//          Files.createDirectories(backupPath);
+//          copyFolder(new File(DATABASES_PATH + File.separator + DB_NAME), backupPath.toFile());
+//          logger.info("Backup is completed");
 
 
           checkDatabase(addIndex, addBinaryRecords);
