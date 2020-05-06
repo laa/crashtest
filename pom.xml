@@ -27,7 +27,7 @@
                     <arguments>
                         <argument>-classpath</argument>
                         <classpath/>
-                        <argument>-Xmx2048m</argument>
+                        <argument>-Xmx4g</argument>
                         <argument>com.orientechnologies.crashtest.DataChecker</argument>
                     </arguments>
                 </configuration>
