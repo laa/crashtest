@@ -1,13 +1,9 @@
 package com.orientechnologies.crashtest;
 
-import com.orientechnologies.common.io.OFileUtils;
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.db.ODatabaseSession;
 import com.orientechnologies.orient.core.db.OrientDB;
 import com.orientechnologies.orient.core.db.OrientDBConfig;
-import com.orientechnologies.orient.core.db.record.OIdentifiable;
-import com.orientechnologies.orient.core.index.OIndex;
-import com.orientechnologies.orient.core.index.OIndexManager;
 import com.orientechnologies.orient.core.record.ODirection;
 import com.orientechnologies.orient.core.record.OEdge;
 import com.orientechnologies.orient.core.record.OVertex;
@@ -25,34 +21,16 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-import java.util.Timer;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
-import static com.orientechnologies.crashtest.DataLoader.CRASH_E;
-import static com.orientechnologies.crashtest.DataLoader.CRASH_V;
-import static com.orientechnologies.crashtest.DataLoader.DATABASES_PATH;
-import static com.orientechnologies.crashtest.DataLoader.DATABASES_URL;
-import static com.orientechnologies.crashtest.DataLoader.DB_NAME;
-import static com.orientechnologies.crashtest.DataLoader.RING_ID;
-import static com.orientechnologies.crashtest.DataLoader.RING_IDS;
-import static com.orientechnologies.crashtest.DataLoader.RING_SIZES;
+import static com.orientechnologies.crashtest.DataLoader.*;
 
 class DataChecker {
   private static final String ONLY_CHECK_FLAG = "-onlyCheck";
 
-  private static final Logger logger = LogManager.getFormatterLogger(DataChecker.class);
-
-  private static final Path backupPath = Paths.get("target/crash_backup");
+  private static final Logger logger = LogManager.getLogger(DataChecker.class);
 
   static {
     OGlobalConfiguration.STORAGE_CHECKSUM_MODE.setValue(OChecksumMode.StoreAndThrow);
@@ -96,7 +74,7 @@ class DataChecker {
   private static void executeCrashSuite() {
     logger.info("Crash suite is started");
     final long timeSeed = System.nanoTime();
-    logger.info("TimeSeed: %d", timeSeed);
+    logger.info("TimeSeed: {}", timeSeed);
     final Random random = new Random(timeSeed);
 
     final Calendar calendar = Calendar.getInstance();
@@ -114,7 +92,7 @@ class DataChecker {
         }
 
         counter++;
-        logger.info("Crash test is started, %d iteration", counter);
+        logger.info("Crash test is started, {} iteration", counter);
 
         final boolean addIndex = random.nextBoolean();
         final boolean addBinaryRecords = random.nextBoolean();
@@ -124,19 +102,10 @@ class DataChecker {
 
         if (startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache, useSmallWal, generateOOM)) {
           logger.info("Wait for 1 min to be sure that all file locks are released");
+          //noinspection BusyWait
           Thread.sleep(60 * 1000);
 
-          logger.info("DB size is %d mb", calculateDirectorySize(DATABASES_PATH + File.separator + DB_NAME) / (1024 * 1024));
-
-//          logger.info("Perform database backup to the %s", backupPath);
-//          if (Files.exists(backupPath)) {
-//            OFileUtils.deleteRecursively(backupPath.toFile());
-//          }
-//
-//          Files.createDirectories(backupPath);
-//          copyFolder(new File(DATABASES_PATH + File.separator + DB_NAME), backupPath.toFile());
-//          logger.info("Backup is completed");
-
+          logger.info("DB size is {} mb", calculateDirectorySize(DATABASES_PATH + File.separator + DB_NAME) / (1024 * 1024));
 
           checkDatabase(addIndex, addBinaryRecords);
         } else {
@@ -151,8 +120,9 @@ class DataChecker {
     logger.info("Crash suite is completed");
   }
 
+  @SuppressWarnings("SameParameterValue")
   private static boolean startAndCrash(final Random random, final boolean addIndex, final boolean addBinaryRecords,
-      final boolean useSmallDiskCache, final boolean useSmallWal, final boolean generateOOM)
+      final boolean useSmallDiskCache, final boolean useSmallWal, final boolean generateOom)
       throws IOException, InterruptedException {
 
     String javaExec = System.getProperty("java.home") + "/bin/java";
@@ -189,22 +159,22 @@ class DataChecker {
     processBuilder.inheritIO();
     Process process = processBuilder.start();
 
-    final long secondsToWait = random.nextInt( 4 * 60 * 60/*4 hours in seconds*/ - 15) + 15;
+    final long secondsToWait = 300; //random.nextInt(4 * 60 * 60/*4 hours in seconds*/ - 15) + 15;
 
-    logger.info("DataLoader process is started with parameters (addIndex %b, addBinaryRecords %b, "
-            + "useSmallDiskCache %b, useSmallWal %b, generate OOM %b), waiting for completion during %d seconds...", addIndex,
-        addBinaryRecords, useSmallDiskCache, useSmallWal, generateOOM, secondsToWait);
+    logger.info("DataLoader process is started with parameters (addIndex {}, addBinaryRecords {}, "
+            + "useSmallDiskCache {}, useSmallWal {}, generate OOM {}), waiting for completion during {} seconds...", addIndex,
+        addBinaryRecords, useSmallDiskCache, useSmallWal, generateOom, secondsToWait);
 
     final Timer timer = new Timer();
-    timer.schedule(new CrashCountDownTask(secondsToWait, generateOOM), 30 * 1000, 30 * 1000);
+    timer.schedule(new CrashCountDownTask(secondsToWait, generateOom), 30 * 1000, 30 * 1000);
 
     final boolean completed = process.waitFor(secondsToWait, TimeUnit.SECONDS);
+    timer.cancel();
+
     if (completed) {
-      timer.cancel();
       logger.error("Data load is completed successfully nothing to check");
       return false;
     } else {
-      timer.cancel();
 
       final boolean killSignal = random.nextBoolean();
 
@@ -239,7 +209,7 @@ class DataChecker {
     socket.close();
   }
 
-  private static void checkDatabase(final boolean addIndex, final boolean addBinaryRecords) throws IOException {
+  private static void checkDatabase(final boolean addIndex, final boolean addBinaryRecords) {
     try (OrientDB orientDB = new OrientDB(DATABASES_URL, OrientDBConfig.defaultConfig())) {
       runDbCheck(DB_NAME, addIndex, addBinaryRecords, orientDB);
 
@@ -256,61 +226,29 @@ class DataChecker {
 
   private static void runDbCheck(final String dbName, boolean addIndex, boolean addBinaryRecords, OrientDB orientDB) {
     try (ODatabaseSession session = orientDB.open(dbName, "admin", "admin")) {
-      final OIndexManager indexManager = session.getMetadata().getIndexManager();
-      final OIndex<Set<OIdentifiable>> randomValueIndex;
-      final OIndex<Set<OIdentifiable>> randomValuesIndex;
-
-      if (addIndex) {
-        //noinspection unchecked
-        randomValueIndex = (OIndex<Set<OIdentifiable>>) indexManager.getIndex(DataLoader.RANDOM_VALUE_INDEX);
-        //noinspection unchecked
-        randomValuesIndex = (OIndex<Set<OIdentifiable>>) indexManager.getIndex(DataLoader.RANDOM_VALUES_INDEX);
-      } else {
-        randomValueIndex = null;
-        randomValuesIndex = null;
-      }
-
       AtomicInteger counter = new AtomicInteger();
+
       logger.info("Start DB check");
       try (OResultSet resultSet = session.query("select from " + CRASH_V)) {
         resultSet.vertexStream().forEach(v -> {
           final List<Long> ringIds = v.getProperty(RING_IDS);
           if (ringIds != null) {
             for (Long ringId : ringIds) {
-              checkRing(v, ringId, addIndex, randomValueIndex, randomValuesIndex, addBinaryRecords);
+              checkRing(session, v, ringId, addIndex, addBinaryRecords);
             }
           }
 
           final int cnt = counter.incrementAndGet();
           if (cnt > 0 && cnt % 1000 == 0) {
-            logger.info("%d vertexes were checked", cnt);
+            logger.info("{} vertexes were checked", cnt);
           }
         });
       }
     }
   }
 
-  private static void pack(String sourceDirPath, String zipFilePath) throws IOException {
-    final Path p = Files.createFile(Paths.get(zipFilePath));
-
-    try (ZipOutputStream zs = new ZipOutputStream(Files.newOutputStream(p))) {
-      Path pp = Paths.get(sourceDirPath);
-      Files.walk(pp).forEach(path -> {
-        ZipEntry zipEntry = new ZipEntry(pp.relativize(path).toString());
-        try {
-          if (!Files.isDirectory(path)) {
-            zs.putNextEntry(zipEntry);
-            Files.copy(path, zs);
-          }
-        } catch (IOException e) {
-          throw new IllegalStateException(e);
-        }
-      });
-    }
-  }
-
-  private static void checkRing(OVertex start, long ringId, final boolean addIndex, OIndex<Set<OIdentifiable>> randomValueIndex,
-      OIndex<Set<OIdentifiable>> randomValuesIndex, final boolean addBinaryRecords) {
+  private static void checkRing(final ODatabaseSession session, OVertex start, long ringId, final boolean addIndex,
+      final boolean addBinaryRecords) {
     int vCount = 1;
     OVertex v = start;
 
@@ -342,18 +280,21 @@ class DataChecker {
         if (addIndex) {
           final int randomValue = e.getProperty(DataLoader.RANDOM_VALUE_FIELD);
 
-          Set<OIdentifiable> edges = randomValueIndex.get(randomValue);
-          if (!edges.contains(e.getIdentity())) {
-            throw new IllegalStateException("Random value present inside of edge is absent in index");
+          try (final OResultSet resultSet = session
+              .query("select * from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = " + randomValue)) {
+            if (resultSet.edgeStream().noneMatch(edge -> edge.getIdentity().equals(e.getIdentity()))) {
+              throw new IllegalStateException("Random value present inside of edge is absent in index");
+            }
           }
 
           final List<Integer> randomValues = e.getProperty(DataLoader.RANDOM_VALUES_FIELD);
 
           for (int rndVal : randomValues) {
-            edges = randomValuesIndex.get(rndVal);
-
-            if (!edges.contains(e.getIdentity())) {
-              throw new IllegalStateException("Random values present inside of edge is absent in index");
+            try (final OResultSet resultSet = session
+                .query("select * from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = " + rndVal)) {
+              if (resultSet.edgeStream().noneMatch(edge -> edge.getIdentity().equals(e.getIdentity()))) {
+                throw new IllegalStateException("Random values present inside of edge is absent in index");
+              }
             }
           }
         }
@@ -381,25 +322,6 @@ class DataChecker {
 
     if (vCount != ringSize) {
       throw new IllegalStateException("Expected and actual ring sizes are not equal");
-    }
-  }
-
-  static private void copyFolder(File src, File dest) throws IOException {
-    if (src.listFiles() == null || src.listFiles().length == 0)
-      return;
-
-    if (!dest.exists())
-      Files.createDirectories(dest.toPath());
-
-    for (File file : src.listFiles()) {
-      File fileDest = new File(dest, file.getName());
-      if (file.isDirectory()) {
-        copyFolder(file, fileDest);
-      } else {
-        if (fileDest.exists())
-          continue;
-        Files.copy(file.getAbsoluteFile().toPath(), fileDest.getAbsoluteFile().toPath());
-      }
     }
   }
 }

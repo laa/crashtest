@@ -11,7 +11,7 @@ import java.net.Socket;
 import java.util.TimerTask;
 
 class CrashCountDownTask extends TimerTask {
-  private static final Logger logger = LogManager.getFormatterLogger(CrashCountDownTask.class);
+  private static final Logger logger = LogManager.getLogger(CrashCountDownTask.class);
 
   private final long    crashTs;
   private final boolean generateOOM;
@@ -45,7 +45,7 @@ class CrashCountDownTask extends TimerTask {
       interval -= mm * (60 * 1000);
 
       final int ss = (int) (interval / 1000);
-      logger.info("%02d:%02d:%02d left till database crash", hh, mm, ss);
+      logger.info("{}:{}:{} left till database crash", hh, mm, ss);
     }
   }
 

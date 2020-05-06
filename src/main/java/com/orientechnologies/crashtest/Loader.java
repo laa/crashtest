@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 class Loader implements Callable<Void> {
-  private static final Logger logger = LogManager.getFormatterLogger(Loader.class);
+  private static final Logger logger = LogManager.getLogger(Loader.class);
 
   private static final int MAX_RETRIES = 100_000;
   private final ODatabasePool pool;
@@ -63,13 +63,13 @@ class Loader implements Callable<Void> {
             ringsCreationCounter += ringsCount;
 
             if (ringsCreationCounter > 0 && ringsCreationCounter % 1000 == 0) {
-              logger.info("%s thread, %d rings were created", Thread.currentThread().getName(), ringsCreationCounter);
+              logger.info("{} thread, {} rings were created", Thread.currentThread().getName(), ringsCreationCounter);
             }
           } else {
             ringsDeletionCounter += removeRing(random);
 
             if (ringsDeletionCounter > 0 && ringsDeletionCounter % 100 == 0) {
-              logger.info("%s thread, %d rings were deleted", Thread.currentThread().getName(), ringsDeletionCounter);
+              logger.info("{} thread, {} rings were deleted", Thread.currentThread().getName(), ringsDeletionCounter);
             }
           }
         } catch (OutOfMemoryError e) {
@@ -85,7 +85,7 @@ class Loader implements Callable<Void> {
     }
 
     if (stopFlag.get()) {
-      logger.info("Thread %s was stopped, by stop file", Thread.currentThread().getName());
+      logger.info("Thread {} was stopped, by stop file", Thread.currentThread().getName());
     }
 
     return null;
@@ -201,7 +201,7 @@ class Loader implements Callable<Void> {
             retryCounter++;
 
             if (retryCounter > MAX_RETRIES) {
-              logger.info("%s - Limit of ring retries is reached, thread stopped, %d rings were created",
+              logger.info("{}- Limit of ring retries is reached, thread stopped, {} rings were created",
                   Thread.currentThread().getName(), ringsCounter);
               return -1;
             }
@@ -211,7 +211,7 @@ class Loader implements Callable<Void> {
               retryCounter++;
 
               if (retryCounter > MAX_RETRIES) {
-                logger.info("%s - Limit of ring retries is reached, thread stopped, %d rings were created",
+                logger.info("{} - Limit of ring retries is reached, thread stopped, {} rings were created",
                     Thread.currentThread().getName(), ringsCounter);
                 return -1;
               }
@@ -336,7 +336,7 @@ class Loader implements Callable<Void> {
     final int id = random.nextInt(DataLoader.VERTEX_COUNT);
 
     try (OResultSet result = session.query("select from " + DataLoader.CRASH_V + " where " + DataLoader.V_ID + " = " + id)) {
-      //noinspection ConstantConditions
+      //noinspection OptionalGetWithoutIsPresent
       return result.next().getVertex().get();
     }
   }

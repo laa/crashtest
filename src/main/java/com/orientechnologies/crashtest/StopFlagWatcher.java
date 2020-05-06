@@ -12,7 +12,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 class StopFlagWatcher implements Callable<Void> {
-  private static final Logger logger = LogManager.getFormatterLogger(StopFlagWatcher.class);
+  private static final Logger logger = LogManager.getLogger(StopFlagWatcher.class);
 
   private final WatchService  watcher;
   private final Path          stopFile;
@@ -47,7 +47,7 @@ class StopFlagWatcher implements Callable<Void> {
               return null;
             }
           } else {
-            logger.error("Invalid event kind was detected %s", kind);
+            logger.error("Invalid event kind was detected {}", kind);
           }
         }
 

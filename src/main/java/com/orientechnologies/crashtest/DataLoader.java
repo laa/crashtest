@@ -1,10 +1,6 @@
 package com.orientechnologies.crashtest;
 
-import com.orientechnologies.orient.core.db.ODatabasePool;
-import com.orientechnologies.orient.core.db.ODatabaseSession;
-import com.orientechnologies.orient.core.db.ODatabaseType;
-import com.orientechnologies.orient.core.db.OrientDB;
-import com.orientechnologies.orient.core.db.OrientDBConfig;
+import com.orientechnologies.orient.core.db.*;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.OVertex;
@@ -16,16 +12,8 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchService;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.nio.file.*;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -33,9 +21,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 class DataLoader {
-  private static final Logger logger = LogManager.getFormatterLogger(DataLoader.class);
+  private static final Logger logger = LogManager.getLogger(DataLoader.class);
 
-  static final int    VERTEX_COUNT   = 10_000_000;
+  static final int    VERTEX_COUNT   = 1_000_000;
   static final String V_ID           = "id";
   static final String RING_IDS       = "ringIds";
   static final String RING_SIZES     = "ringSizes";
@@ -125,7 +113,7 @@ class DataLoader {
           vertex.save();
 
           if (i > 0 && i % 100_000 == 0) {
-            logger.info("%d vertexes were added", i);
+            logger.info("{} vertexes were added", i);
           }
 
           if (stopFlag.get()) {
@@ -139,7 +127,7 @@ class DataLoader {
       try (final ODatabasePool pool = new ODatabasePool(orientDB, "crashdb", "admin", "admin")) {
         final AtomicLong idGen = new AtomicLong();
 
-        logger.info("%d vertexes were created", VERTEX_COUNT);
+        logger.info("{} vertexes were created", VERTEX_COUNT);
         logger.info("Start rings creation");
         for (int i = 0; i < 8; i++) {
           futures.add(loaderService.submit(new Loader(pool, idGen, addIndex, addBinaryRecords, stopFlag)));
@@ -163,6 +151,7 @@ class DataLoader {
 
     //noinspection InfiniteLoopStatement
     while (true) {
+      //noinspection BusyWait
       Thread.sleep(60 * 1000);
     }
   }
@@ -180,7 +169,6 @@ class DataLoader {
         final Socket clientSocket = serverSocket.accept();
         final InputStream crashStream = clientSocket.getInputStream();
 
-        //noinspection InfiniteLoopStatement
         while (true) {
           final int value = crashStream.read();
 
@@ -217,7 +205,6 @@ class DataLoader {
         final Socket clientSocket = serverSocket.accept();
         final InputStream oomStream = clientSocket.getInputStream();
 
-        //noinspection InfiniteLoopStatement
         while (true) {
           final int value = oomStream.read();
 
