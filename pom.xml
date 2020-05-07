@@ -28,7 +28,6 @@
                         <argument>-classpath</argument>
                         <classpath/>
                         <argument>-Xmx8g</argument>
-                        <argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005</argument>
                         <argument>com.orientechnologies.crashtest.DataChecker</argument>
                     </arguments>
                 </configuration>
