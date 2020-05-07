@@ -185,7 +185,7 @@ class Loader implements Callable<Void> {
         final Set<Integer> vertexIds = new HashSet<>();
 
         while (vertexIds.size() < ringSize) {
-          final int vertexId = random.nextInt(DataLoader.VERTEX_COUNT);
+          final int vertexId = random.nextInt(vertexesCount);
           vertexIds.add(vertexId);
         }
 
@@ -295,14 +295,14 @@ class Loader implements Callable<Void> {
   }
 
   private void addRandomValues(ThreadLocalRandom random, OEdge edge) {
-    final int randomValue = random.nextInt(DataLoader.VERTEX_COUNT / 1000);
+    final int randomValue = random.nextInt(vertexesCount / 1000);
     edge.setProperty(DataLoader.RANDOM_VALUE_FIELD, randomValue);
 
     final int randomValuesSize = random.nextInt(20) + 10;
     final List<Integer> randomValues = new ArrayList<>();
 
     for (int n = 0; n < randomValuesSize; n++) {
-      randomValues.add(random.nextInt(DataLoader.VERTEX_COUNT / 1000));
+      randomValues.add(random.nextInt(vertexesCount / 1000));
     }
 
     edge.setProperty(DataLoader.RANDOM_VALUES_FIELD, randomValues);
@@ -333,7 +333,7 @@ class Loader implements Callable<Void> {
   }
 
   private OVertex chooseRandomVertex(ODatabaseSession session, ThreadLocalRandom random) {
-    final int id = random.nextInt(DataLoader.VERTEX_COUNT);
+    final int id = random.nextInt(vertexesCount);
 
     try (OResultSet result = session.query("select from " + DataLoader.CRASH_V + " where " + DataLoader.V_ID + " = " + id)) {
       //noinspection OptionalGetWithoutIsPresent
