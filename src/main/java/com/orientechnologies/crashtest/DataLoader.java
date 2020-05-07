@@ -17,6 +17,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -81,8 +82,7 @@ class DataLoader {
 
       orientDB.create(DB_NAME, ODatabaseType.PLOCAL);
 
-      final int vertexesToAdd = 8915079;
-      //ThreadLocalRandom.current().nextInt(VERTEX_COUNT - 100_000) + 100_000;
+      final int vertexesToAdd = ThreadLocalRandom.current().nextInt(VERTEX_COUNT - 100_000) + 100_000;
 
       try (final ODatabaseSession session = orientDB.open(DB_NAME, "admin", "admin")) {
         final OClass vCls = session.createVertexClass(CRASH_V);
@@ -133,7 +133,7 @@ class DataLoader {
         logger.info("{} vertexes were created", vertexesToAdd);
         logger.info("Start rings creation");
         for (int i = 0; i < 8; i++) {
-          futures.add(loaderService.submit(new Loader(pool, idGen, addIndex, addBinaryRecords, stopFlag)));
+          futures.add(loaderService.submit(new Loader(pool, idGen, addIndex, addBinaryRecords, stopFlag, vertexesToAdd)));
         }
 
         for (Future<Void> future : futures) {

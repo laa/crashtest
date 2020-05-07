@@ -11,11 +11,7 @@ import com.orientechnologies.orient.core.sql.executor.OResultSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,9 +20,9 @@ import java.util.concurrent.atomic.AtomicLong;
 class Loader implements Callable<Void> {
   private static final Logger logger = LogManager.getLogger(Loader.class);
 
-  private static final int MAX_RETRIES = 100_000;
-  private final ODatabasePool pool;
-  private final AtomicLong    idGen;
+  private static final int           MAX_RETRIES = 100_000;
+  private final        ODatabasePool pool;
+  private final        AtomicLong    idGen;
 
   private final boolean addIndex;
 
@@ -34,14 +30,18 @@ class Loader implements Callable<Void> {
 
   private final AtomicBoolean stopFlag;
 
+  private final int vertexesCount;
+
   private List<byte[]> payLoad = new ArrayList<>();
 
-  Loader(ODatabasePool pool, AtomicLong idGen, boolean addIndex, boolean addBinaryRecords, AtomicBoolean stopFlag) {
+  Loader(ODatabasePool pool, AtomicLong idGen, boolean addIndex, boolean addBinaryRecords, AtomicBoolean stopFlag,
+      int vertexesCount) {
     this.pool = pool;
     this.idGen = idGen;
     this.addIndex = addIndex;
     this.addBinaryRecrods = addBinaryRecords;
     this.stopFlag = stopFlag;
+    this.vertexesCount = vertexesCount;
   }
 
   @Override
@@ -93,7 +93,7 @@ class Loader implements Callable<Void> {
 
   private int removeRing(ThreadLocalRandom random) {
     try (ODatabaseSession session = pool.acquire()) {
-      final int vertexId = random.nextInt(DataLoader.VERTEX_COUNT);
+      final int vertexId = random.nextInt(vertexesCount);
       final OVertex ringsStart;
 
       try (OResultSet resultSet = session
