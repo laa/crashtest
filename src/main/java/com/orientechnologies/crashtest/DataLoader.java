@@ -82,7 +82,7 @@ class DataLoader {
 
       orientDB.create(DB_NAME, ODatabaseType.PLOCAL);
 
-      final int vertexesToAdd = 7548091;//ThreadLocalRandom.current().nextInt(VERTEX_COUNT - 100_000) + 100_000;
+      final int vertexesToAdd = ThreadLocalRandom.current().nextInt(VERTEX_COUNT - 100_000) + 100_000;
 
       try (final ODatabaseSession session = orientDB.open(DB_NAME, "admin", "admin")) {
         final OClass vCls = session.createVertexClass(CRASH_V);
