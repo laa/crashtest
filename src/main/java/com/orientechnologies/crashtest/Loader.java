@@ -53,7 +53,8 @@ class Loader implements Callable<Void> {
 
       while (!stopFlag.get()) {
         try {
-          if (random.nextDouble() > 0.1) {
+          if (((ringsCreationCounter - ringsDeletionCounter) < vertexesCount * 10) && random.nextDouble() > 0.1
+              || ((ringsCreationCounter - ringsDeletionCounter) >= vertexesCount * 10) && random.nextDouble() > 0.5) {
             final int ringsCount = addRing(random);
 
             if (ringsCount == -1) {
