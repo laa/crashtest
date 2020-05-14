@@ -161,27 +161,29 @@ class DataLoader {
   private static void startHaltThread() throws IOException {
     logger.info("Starting JVM halt thread");
 
-    final ServerSocket serverSocket = new ServerSocket(1025, 1, null);
+    final ServerSocket serverSocket = new ServerSocket(2048, 1, null);
     serverSocket.setReuseAddress(true);
 
     final Thread crashThread = new Thread(() -> {
       try {
         logger.info("Halt thread is listening for the signal");
 
-        final Socket clientSocket = serverSocket.accept();
-        final InputStream crashStream = clientSocket.getInputStream();
-
         while (true) {
-          final int value = crashStream.read();
+          final Socket clientSocket = serverSocket.accept();
+          final InputStream crashStream = clientSocket.getInputStream();
 
-          if (value == 42) {
-            logger.info("Halt signal is received, trying to halt JVM");
-            Runtime.getRuntime().halt(-1);
-          } else if (value == -1) {
-            logger.info("End of stream is reached in halt thread");
-            break;
-          } else {
-            logger.info("Unknown signal is received {} by halt thread, listening for next signal", value);
+          while (true) {
+            final int value = crashStream.read();
+
+            if (value == 42) {
+              logger.info("Halt signal is received, trying to halt JVM");
+              Runtime.getRuntime().halt(-1);
+            } else if (value == -1) {
+              logger.info("End of stream is reached in halt thread");
+              break;
+            } else {
+              logger.info("Unknown signal is received {} by halt thread, listening for next signal", value);
+            }
           }
         }
 

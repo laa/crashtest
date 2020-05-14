@@ -200,7 +200,7 @@ class DataChecker {
 
   private static void triggerJVMHalt() throws IOException {
     final Socket socket = new Socket();
-    socket.connect(new InetSocketAddress(InetAddress.getLocalHost(), 1025));
+    socket.connect(new InetSocketAddress(InetAddress.getLocalHost(), 2048));
     socket.setSoTimeout(2000);
     OutputStream stream = socket.getOutputStream();
     stream.write(42);
