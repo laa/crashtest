@@ -9,7 +9,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.*;
@@ -162,7 +161,7 @@ class DataLoader {
   private static void startHaltThread() throws IOException {
     logger.info("Starting JVM halt thread");
 
-    final ServerSocket serverSocket = new ServerSocket(1025, 0, InetAddress.getLocalHost());
+    final ServerSocket serverSocket = new ServerSocket(1025, 1, null);
     serverSocket.setReuseAddress(true);
 
     final Thread crashThread = new Thread(() -> {
@@ -182,7 +181,7 @@ class DataLoader {
             logger.info("End of stream is reached in halt thread");
             break;
           } else {
-            logger.info("Unknown signal is received by halt thread, listening for next signal");
+            logger.info("Unknown signal is received {} by halt thread, listening for next signal", value);
           }
         }
 
@@ -198,7 +197,7 @@ class DataLoader {
   private static void startOOMThread() throws IOException {
     logger.info("Starting OOM thread");
 
-    final ServerSocket serverSocket = new ServerSocket(1036, 0, InetAddress.getLocalHost());
+    final ServerSocket serverSocket = new ServerSocket(1036, 1, null);
     serverSocket.setReuseAddress(true);
 
     final Thread crashThread = new Thread(() -> {
@@ -219,7 +218,7 @@ class DataLoader {
             logger.info("End of stream is reached in OOM thread");
             break;
           } else {
-            logger.info("Unknown signal is received by OOM thread, listening for next signal");
+            logger.info("Unknown signal is received by OOM thread {}, listening for next signal", value);
           }
         }
 
