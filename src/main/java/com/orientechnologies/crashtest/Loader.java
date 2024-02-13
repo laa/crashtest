@@ -135,7 +135,8 @@ class Loader implements Callable<Void> {
         }
 
         if (prevVertex.getIdentity().equals(nextVertex.getIdentity())) {
-          //throe exception once serializable isolation level will be implemented
+          //throw exception once serializable isolation level will be implemented
+          session.rollback();
           return 0;
         }
 
@@ -144,7 +145,8 @@ class Loader implements Callable<Void> {
 
           ringIndex = ringIds.indexOf(ringId);
           if (ringIndex < 0) {
-            //throe exception once serializable isolation level will be implemented
+            //throw exception once serializable isolation level will be implemented
+            session.rollback();
             return 0;
           }
 
