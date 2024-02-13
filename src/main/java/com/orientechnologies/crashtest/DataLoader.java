@@ -32,6 +32,8 @@ class DataLoader {
   static final String CRASH_V = "CrashV";
   static final String CRASH_E = "CrashE";
   static final String DB_NAME = "crashdb";
+
+  static final String ARCHIVE_NAME = "crashdb_archive";
   static final String DATABASES_PATH = "target/databases";
   static final String DATABASES_URL = "plocal:" + DATABASES_PATH;
 

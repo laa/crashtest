@@ -10,6 +10,10 @@ import com.orientechnologies.orient.core.record.OVertex;
 import com.orientechnologies.orient.core.sql.executor.OResultSet;
 import com.orientechnologies.orient.core.storage.OChecksumMode;
 import java.lang.management.ManagementFactory;
+import java.nio.file.FileVisitResult;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MalformedObjectNameException;
@@ -240,13 +244,75 @@ class DataChecker {
   }
 
   private static void checkDatabase(final boolean addIndex, final boolean addBinaryRecords) {
+    var archiveDbPath = Paths.get(DATABASES_PATH).resolve(ARCHIVE_NAME);
+    logger.info("Copying database into " + archiveDbPath.toAbsolutePath());
+
+    try {
+      copyFolder(Paths.get(DATABASES_PATH).resolve(DB_NAME), archiveDbPath);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    logger.info("Database was copied");
+
     try (OrientDB orientDB = new OrientDB(DATABASES_URL, OrientDBConfig.defaultConfig())) {
       runDbCheck(DB_NAME, addIndex, addBinaryRecords, orientDB);
 
       logger.info("DB check is completed, removing DB");
       orientDB.drop(DB_NAME);
     }
+
+    logger.info("Deleting database archive.");
+    try {
+      deleteDirectoryRecursively(archiveDbPath);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    logger.info("Deletion of database archive was completed.");
   }
+
+  private static void copyFolder(Path source, Path target) throws IOException {
+    // Create the target directory if it does not exist
+    if (!Files.exists(target)) {
+      Files.createDirectories(target);
+    }
+
+    Files.walkFileTree(source, new SimpleFileVisitor<>() {
+      @Override
+      public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
+          throws IOException {
+        Path targetDir = target.resolve(source.relativize(dir));
+        if (!Files.exists(targetDir)) {
+          Files.createDirectory(targetDir);
+        }
+        return FileVisitResult.CONTINUE;
+      }
+
+      @Override
+      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+        Files.copy(file, target.resolve(source.relativize(file)),
+            StandardCopyOption.REPLACE_EXISTING);
+        return FileVisitResult.CONTINUE;
+      }
+    });
+  }
+
+  private static void deleteDirectoryRecursively(Path path) throws IOException {
+    Files.walkFileTree(path, new SimpleFileVisitor<>() {
+      @Override
+      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+        Files.delete(file);
+        return FileVisitResult.CONTINUE;
+      }
+
+      @Override
+      public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+        Files.delete(dir);
+        return FileVisitResult.CONTINUE;
+      }
+    });
+  }
+
 
   private static long calculateDirectorySize(String path) throws IOException {
     final Path folder = Paths.get(path);
