@@ -137,7 +137,8 @@ class DataLoader {
 
         logger.info("{} vertexes were created", vertexesToAdd);
         logger.info("Start rings creation");
-        for (int i = 0; i < 8; i++) {
+        var threadsCount = Math.max(Runtime.getRuntime().availableProcessors(), 8);
+        for (int i = 0; i < threadsCount; i++) {
           futures.add(loaderService.submit(
               new Loader(pool, idGen, addIndex, addBinaryRecords, stopFlag, vertexesToAdd)));
         }
@@ -168,8 +169,7 @@ class DataLoader {
   private static void startHaltThread() throws IOException {
     logger.info("Starting JVM halt thread");
 
-    @SuppressWarnings("resource")
-    final ServerSocket serverSocket = new ServerSocket(2048, 1, null);
+    @SuppressWarnings("resource") final ServerSocket serverSocket = new ServerSocket(2048, 1, null);
     serverSocket.setReuseAddress(true);
 
     final Thread crashThread = new Thread(() -> {
@@ -208,8 +208,7 @@ class DataLoader {
   private static void startOOMThread() throws IOException {
     logger.info("Starting OOM thread");
 
-    @SuppressWarnings("resource")
-    final ServerSocket serverSocket = new ServerSocket(1036, 1, null);
+    @SuppressWarnings("resource") final ServerSocket serverSocket = new ServerSocket(1036, 1, null);
     serverSocket.setReuseAddress(true);
 
     final Thread crashThread = new Thread(() -> {
