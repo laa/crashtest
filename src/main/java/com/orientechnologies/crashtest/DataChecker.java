@@ -9,6 +9,12 @@ import com.orientechnologies.orient.core.record.OEdge;
 import com.orientechnologies.orient.core.record.OVertex;
 import com.orientechnologies.orient.core.sql.executor.OResultSet;
 import com.orientechnologies.orient.core.storage.OChecksumMode;
+import java.lang.management.ManagementFactory;
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,6 +34,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.orientechnologies.crashtest.DataLoader.*;
 
 class DataChecker {
+
+  private static final CrashFlag CRASH_FLAG_M_BEAN = new CrashFlag();
   private static final String ONLY_CHECK_FLAG = "-onlyCheck";
 
   private static final Logger logger = LogManager.getLogger(DataChecker.class);
@@ -62,7 +70,8 @@ class DataChecker {
     }
   }
 
-  private static void executeDbCheckOnly(final String dbPath, final String dbName, final boolean addIndexes,
+  private static void executeDbCheckOnly(final String dbPath, final String dbName,
+      final boolean addIndexes,
       final boolean addBinaryRecords) {
 
     try (OrientDB orientDB = new OrientDB("plocal:" + dbPath, OrientDBConfig.defaultConfig())) {
@@ -72,6 +81,16 @@ class DataChecker {
   }
 
   private static void executeCrashSuite() {
+    try {
+      ManagementFactory.getPlatformMBeanServer().registerMBean(
+          CRASH_FLAG_M_BEAN,
+          new ObjectName("com.orientechnologies.crashtest:type=CrashTestFlag")
+      );
+    } catch (InstanceAlreadyExistsException | MBeanRegistrationException |
+             NotCompliantMBeanException | MalformedObjectNameException e) {
+      throw new RuntimeException(e);
+    }
+
     logger.info("Crash suite is started");
     final long timeSeed = System.nanoTime();
     logger.info("TimeSeed: {}", timeSeed);
@@ -100,12 +119,14 @@ class DataChecker {
         final boolean useSmallWal = random.nextBoolean();
         final boolean generateOOM = false;
 
-        if (startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache, useSmallWal, generateOOM)) {
+        if (startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache, useSmallWal,
+            generateOOM)) {
           logger.info("Wait for 1 min to be sure that all file locks are released");
           //noinspection BusyWait
           Thread.sleep(60 * 1000);
 
-          logger.info("DB size is {} mb", calculateDirectorySize(DATABASES_PATH + File.separator + DB_NAME) / (1024 * 1024));
+          logger.info("DB size is {} mb",
+              calculateDirectorySize(DATABASES_PATH + File.separator + DB_NAME) / (1024 * 1024));
 
           checkDatabase(addIndex, addBinaryRecords);
         } else {
@@ -115,13 +136,20 @@ class DataChecker {
       }
     } catch (Exception e) {
       logger.error("Error during crash test execution", e);
+      CRASH_FLAG_M_BEAN.setCrashDetected(true);
+      try {
+        Thread.sleep(5 * 60 * 1_000);
+      } catch (InterruptedException ex) {
+        throw new RuntimeException(ex);
+      }
     }
 
     logger.info("Crash suite is completed");
   }
 
   @SuppressWarnings("SameParameterValue")
-  private static boolean startAndCrash(final Random random, final boolean addIndex, final boolean addBinaryRecords,
+  private static boolean startAndCrash(final Random random, final boolean addIndex,
+      final boolean addBinaryRecords,
       final boolean useSmallDiskCache, final boolean useSmallWal, final boolean generateOom)
       throws IOException, InterruptedException {
 
@@ -162,7 +190,8 @@ class DataChecker {
     final long secondsToWait = random.nextInt(4 * 60 * 60/*4 hours in seconds*/ - 15) + 15;
 
     logger.info("DataLoader process is started with parameters (addIndex {}, addBinaryRecords {}, "
-            + "useSmallDiskCache {}, useSmallWal {}, generate OOM {}), waiting for completion during {} seconds...", addIndex,
+            + "useSmallDiskCache {}, useSmallWal {}, generate OOM {}), waiting for completion during {} seconds...",
+        addIndex,
         addBinaryRecords, useSmallDiskCache, useSmallWal, generateOom, secondsToWait);
 
     final Timer timer = new Timer();
@@ -188,7 +217,8 @@ class DataChecker {
         final boolean terminated = process.waitFor(60, TimeUnit.SECONDS);
 
         if (!terminated) {
-          logger.info("Process was not terminated by halting JVM, destroying process by sending of KILL signal");
+          logger.info(
+              "Process was not terminated by halting JVM, destroying process by sending of KILL signal");
           process.destroyForcibly().waitFor();
         }
       }
@@ -220,11 +250,15 @@ class DataChecker {
 
   private static long calculateDirectorySize(String path) throws IOException {
     final Path folder = Paths.get(path);
-    return Files.walk(folder).filter(p -> p.toFile().isFile() && !p.getFileName().toString().endsWith(".wal"))
-        .mapToLong(p -> p.toFile().length()).sum();
+
+    try (var files = Files.walk(folder)) {
+      return files.filter(p -> p.toFile().isFile() && !p.getFileName().toString().endsWith(".wal"))
+          .mapToLong(p -> p.toFile().length()).sum();
+    }
   }
 
-  private static void runDbCheck(final String dbName, boolean addIndex, boolean addBinaryRecords, OrientDB orientDB) {
+  private static void runDbCheck(final String dbName, boolean addIndex, boolean addBinaryRecords,
+      OrientDB orientDB) {
     try (ODatabaseSession session = orientDB.open(dbName, "admin", "admin")) {
       AtomicInteger counter = new AtomicInteger();
 
@@ -247,7 +281,8 @@ class DataChecker {
     }
   }
 
-  private static void checkRing(final ODatabaseSession session, OVertex start, long ringId, final boolean addIndex,
+  private static void checkRing(final ODatabaseSession session, OVertex start, long ringId,
+      final boolean addIndex,
       final boolean addBinaryRecords) {
     int vCount = 1;
     OVertex v = start;
@@ -281,9 +316,12 @@ class DataChecker {
           final int randomValue = e.getProperty(DataLoader.RANDOM_VALUE_FIELD);
 
           try (final OResultSet resultSet = session
-              .query("select * from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = " + randomValue)) {
-            if (resultSet.edgeStream().noneMatch(edge -> edge.getIdentity().equals(e.getIdentity()))) {
-              throw new IllegalStateException("Random value present inside of edge is absent in index");
+              .query("select * from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = "
+                  + randomValue)) {
+            if (resultSet.edgeStream()
+                .noneMatch(edge -> edge.getIdentity().equals(e.getIdentity()))) {
+              throw new IllegalStateException(
+                  "Random value present inside of edge is absent in index");
             }
           }
 
@@ -291,9 +329,12 @@ class DataChecker {
 
           for (int rndVal : randomValues) {
             try (final OResultSet resultSet = session
-                .query("select * from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = " + rndVal)) {
-              if (resultSet.edgeStream().noneMatch(edge -> edge.getIdentity().equals(e.getIdentity()))) {
-                throw new IllegalStateException("Random values present inside of edge is absent in index");
+                .query("select * from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = "
+                    + rndVal)) {
+              if (resultSet.edgeStream()
+                  .noneMatch(edge -> edge.getIdentity().equals(e.getIdentity()))) {
+                throw new IllegalStateException(
+                    "Random values present inside of edge is absent in index");
               }
             }
           }
@@ -309,7 +350,8 @@ class DataChecker {
           final int binaryRecordLength = e.getProperty(DataLoader.BINARY_FIELD_SIZE);
 
           if (binaryRecord.length != binaryRecordLength) {
-            throw new IllegalStateException("Length of binary record does not equal to the stored length");
+            throw new IllegalStateException(
+                "Length of binary record does not equal to the stored length");
           }
         }
 

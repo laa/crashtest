@@ -21,28 +21,29 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 class DataLoader {
+
   private static final Logger logger = LogManager.getLogger(DataLoader.class);
 
-  static final int    VERTEX_COUNT   = 10_000_000;
-  static final String V_ID           = "id";
-  static final String RING_IDS       = "ringIds";
-  static final String RING_SIZES     = "ringSizes";
-  static final String RING_ID        = "ringId";
-  static final String CRASH_V        = "CrashV";
-  static final String CRASH_E        = "CrashE";
-  static final String DB_NAME        = "crashdb";
+  static final int VERTEX_COUNT = 10_000_000;
+  static final String V_ID = "id";
+  static final String RING_IDS = "ringIds";
+  static final String RING_SIZES = "ringSizes";
+  static final String RING_ID = "ringId";
+  static final String CRASH_V = "CrashV";
+  static final String CRASH_E = "CrashE";
+  static final String DB_NAME = "crashdb";
   static final String DATABASES_PATH = "target/databases";
-  static final String DATABASES_URL  = "plocal:" + DATABASES_PATH;
+  static final String DATABASES_URL = "plocal:" + DATABASES_PATH;
 
-  public static final String ADD_INDEX_FLAG          = "-addIndex";
+  public static final String ADD_INDEX_FLAG = "-addIndex";
   public static final String ADD_BINARY_RECORDS_FLAG = "-addBinaryRecords";
 
-  public static final String RANDOM_VALUE_FIELD  = "randomValue";
+  public static final String RANDOM_VALUE_FIELD = "randomValue";
   public static final String RANDOM_VALUES_FIELD = "randomValues";
-  public static final String RANDOM_VALUE_INDEX  = "RandomValueIndex";
+  public static final String RANDOM_VALUE_INDEX = "RandomValueIndex";
   public static final String RANDOM_VALUES_INDEX = "randomValuesIndex";
-  public static final String BINARY_FIELD        = "binaryField";
-  public static final String BINARY_FIELD_SIZE   = "binaryFieldSize";
+  public static final String BINARY_FIELD = "binaryField";
+  public static final String BINARY_FIELD_SIZE = "binaryFieldSize";
 
   public static final AtomicBoolean generateOOM = new AtomicBoolean();
 
@@ -79,9 +80,11 @@ class DataLoader {
         orientDB.drop(DB_NAME);
       }
 
-      orientDB.create(DB_NAME, ODatabaseType.PLOCAL);
+      orientDB.execute("create database " + DB_NAME +
+          " plocal users (admin identified by 'admin' role admin)");
 
-      final int vertexesToAdd = ThreadLocalRandom.current().nextInt(VERTEX_COUNT - 100_000) + 100_000;
+      final int vertexesToAdd =
+          ThreadLocalRandom.current().nextInt(VERTEX_COUNT - 100_000) + 100_000;
 
       try (final ODatabaseSession session = orientDB.open(DB_NAME, "admin", "admin")) {
         final OClass vCls = session.createVertexClass(CRASH_V);
@@ -98,7 +101,8 @@ class DataLoader {
           eCls.createProperty(RANDOM_VALUES_FIELD, OType.EMBEDDEDLIST, OType.INTEGER);
 
           eCls.createIndex(RANDOM_VALUE_INDEX, OClass.INDEX_TYPE.NOTUNIQUE, RANDOM_VALUE_FIELD);
-          eCls.createIndex(RANDOM_VALUES_INDEX, OClass.INDEX_TYPE.NOTUNIQUE_HASH_INDEX, RANDOM_VALUES_FIELD);
+          eCls.createIndex(RANDOM_VALUES_INDEX, OClass.INDEX_TYPE.NOTUNIQUE_HASH_INDEX,
+              RANDOM_VALUES_FIELD);
         }
 
         if (addBinaryRecords) {
@@ -132,7 +136,8 @@ class DataLoader {
         logger.info("{} vertexes were created", vertexesToAdd);
         logger.info("Start rings creation");
         for (int i = 0; i < 8; i++) {
-          futures.add(loaderService.submit(new Loader(pool, idGen, addIndex, addBinaryRecords, stopFlag, vertexesToAdd)));
+          futures.add(loaderService.submit(
+              new Loader(pool, idGen, addIndex, addBinaryRecords, stopFlag, vertexesToAdd)));
         }
 
         for (Future<Void> future : futures) {
@@ -161,6 +166,7 @@ class DataLoader {
   private static void startHaltThread() throws IOException {
     logger.info("Starting JVM halt thread");
 
+    @SuppressWarnings("resource")
     final ServerSocket serverSocket = new ServerSocket(2048, 1, null);
     serverSocket.setReuseAddress(true);
 
@@ -182,7 +188,8 @@ class DataLoader {
               logger.info("End of stream is reached in halt thread");
               break;
             } else {
-              logger.info("Unknown signal is received {} by halt thread, listening for next signal", value);
+              logger.info("Unknown signal is received {} by halt thread, listening for next signal",
+                  value);
             }
           }
         }
@@ -199,6 +206,7 @@ class DataLoader {
   private static void startOOMThread() throws IOException {
     logger.info("Starting OOM thread");
 
+    @SuppressWarnings("resource")
     final ServerSocket serverSocket = new ServerSocket(1036, 1, null);
     serverSocket.setReuseAddress(true);
 
@@ -220,7 +228,8 @@ class DataLoader {
             logger.info("End of stream is reached in OOM thread");
             break;
           } else {
-            logger.info("Unknown signal is received by OOM thread {}, listening for next signal", value);
+            logger.info("Unknown signal is received by OOM thread {}, listening for next signal",
+                value);
           }
         }
 
@@ -233,10 +242,12 @@ class DataLoader {
     crashThread.start();
   }
 
-  private static void addStopFileWatcher(AtomicBoolean stopFlag, ExecutorService loaderService) throws IOException {
+  private static void addStopFileWatcher(AtomicBoolean stopFlag, ExecutorService loaderService)
+      throws IOException {
     final WatchService watcher = FileSystems.getDefault().newWatchService();
     final Path buildDir = Paths.get("target");
-    buildDir.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY);
+    buildDir.register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
+        StandardWatchEventKinds.ENTRY_MODIFY);
     loaderService.submit(new StopFlagWatcher(watcher, buildDir.resolve("stop.txt"), stopFlag));
   }
 }
