@@ -135,7 +135,8 @@ class Loader implements Callable<Void> {
         }
 
         if (prevVertex.getIdentity().equals(nextVertex.getIdentity())) {
-          throw new IllegalStateException("From and to vertices of rings can not be identical");
+          //throe exception once serializable isolation level will be implemented
+          return 0;
         }
 
         if (!nextVertex.getIdentity().equals(ringsStart.getIdentity())) {
@@ -143,7 +144,8 @@ class Loader implements Callable<Void> {
 
           ringIndex = ringIds.indexOf(ringId);
           if (ringIndex < 0) {
-            throw new IllegalStateException("Ring id is absent in vertex");
+            //throe exception once serializable isolation level will be implemented
+            return 0;
           }
 
           ringIds.remove(ringIndex);
