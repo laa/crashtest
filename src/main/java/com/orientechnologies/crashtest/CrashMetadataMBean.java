@@ -1,6 +1,9 @@
 package com.orientechnologies.crashtest;
 
-public interface CrashFlagMBean {
+public interface CrashMetadataMBean {
   @SuppressWarnings("unused")
   boolean isCrashDetected();
+
+  @SuppressWarnings("unused")
+  int getCrashIteration();
 }

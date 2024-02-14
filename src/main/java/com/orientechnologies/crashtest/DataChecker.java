@@ -39,7 +39,7 @@ import static com.orientechnologies.crashtest.DataLoader.*;
 
 class DataChecker {
 
-  private static final CrashFlag CRASH_FLAG_M_BEAN = new CrashFlag();
+  private static final CrashMetadata CRASH_METADATA_MBEAN = new CrashMetadata();
   private static final String ONLY_CHECK_FLAG = "-onlyCheck";
 
   private static final Logger logger = LogManager.getLogger(DataChecker.class);
@@ -87,8 +87,8 @@ class DataChecker {
   private static void executeCrashSuite() {
     try {
       ManagementFactory.getPlatformMBeanServer().registerMBean(
-          CRASH_FLAG_M_BEAN,
-          new ObjectName("com.orientechnologies.crashtest:type=CrashTestFlag")
+          CRASH_METADATA_MBEAN,
+          new ObjectName("com.orientechnologies.crashtest:type=CrashMetadata")
       );
     } catch (InstanceAlreadyExistsException | MBeanRegistrationException |
              NotCompliantMBeanException | MalformedObjectNameException e) {
@@ -116,6 +116,7 @@ class DataChecker {
 
         counter++;
         logger.info("Crash test is started, {} iteration", counter);
+        CRASH_METADATA_MBEAN.setCrashIteration(counter);
 
         final boolean addIndex = random.nextBoolean();
         final boolean addBinaryRecords = random.nextBoolean();
@@ -140,7 +141,7 @@ class DataChecker {
       }
     } catch (Exception e) {
       logger.error("Error during crash test execution", e);
-      CRASH_FLAG_M_BEAN.setCrashDetected(true);
+      CRASH_METADATA_MBEAN.setCrashDetected(true);
       try {
         Thread.sleep(5 * 60 * 1_000);
       } catch (InterruptedException ex) {
