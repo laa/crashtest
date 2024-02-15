@@ -14,6 +14,9 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MalformedObjectNameException;
@@ -342,26 +345,57 @@ class DataChecker {
     try (ODatabaseSession session = orientDB.open(dbName, "admin", "admin")) {
       AtomicInteger counter = new AtomicInteger();
 
-      logger.info("Start DB check. Iteration {}", iteration);
-      try (OResultSet resultSet = session.query("select from " + CRASH_V)) {
-        resultSet.vertexStream().parallel().forEach(v -> {
-          try (ODatabaseSession localSession =
-              orientDB.open(dbName, "admin", "admin")) {
-            localSession.activateOnCurrentThread();
+      var cores = Runtime.getRuntime().availableProcessors();
+      try (var pool = Executors.newCachedThreadPool()) {
+        logger.info("Start DB check. Iteration {}", iteration);
+        try (OResultSet resultSet = session.query("select from " + CRASH_V)) {
+          var futures = new ArrayList<Future<?>>();
 
-            final List<Long> ringIds = v.getProperty(RING_IDS);
-            if (ringIds != null) {
-              for (Long ringId : ringIds) {
-                checkRing(localSession, v, ringId, addIndex, addBinaryRecords);
+          try (var steam = resultSet.vertexStream()) {
+            var iterator = steam.iterator();
+            while (iterator.hasNext()) {
+              var vertex = iterator.next();
+              futures.add(pool.submit(() -> {
+                try (ODatabaseSession localSession = orientDB.open(dbName, "admin", "admin")) {
+                  localSession.activateOnCurrentThread();
+
+                  final List<Long> ringIds = vertex.getProperty(RING_IDS);
+                  if (ringIds != null) {
+                    for (Long ringId : ringIds) {
+                      checkRing(localSession, vertex, ringId, addIndex, addBinaryRecords);
+                    }
+                  }
+
+                  final int cnt = counter.incrementAndGet();
+                  if (cnt > 0 && cnt % 1000 == 0) {
+                    logger.info("{} vertexes were checked. Iteration {}", cnt, iteration);
+                  }
+
+                }
+              }));
+
+              if (futures.size() >= cores) {
+                for (var future : futures) {
+                  try {
+                    future.get();
+                  } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
+                  }
+                }
+
+                futures.clear();
               }
             }
+          }
 
-            final int cnt = counter.incrementAndGet();
-            if (cnt > 0 && cnt % 1000 == 0) {
-              logger.info("{} vertexes were checked. Iteration {}", cnt, iteration);
+          for (var future : futures) {
+            try {
+              future.get();
+            } catch (InterruptedException | ExecutionException e) {
+              throw new RuntimeException(e);
             }
           }
-        });
+        }
       }
     }
   }
