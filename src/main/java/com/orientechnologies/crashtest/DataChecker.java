@@ -106,7 +106,7 @@ class DataChecker {
 
     final Path stopFilePath = Paths.get("target/stop.txt");
 
-    int iteration = 1;
+    int iteration = 0;
     try {
       while (System.currentTimeMillis() < endTime) {
         if (stopFilePath.toFile().exists()) {
