@@ -49,6 +49,7 @@ class DataChecker {
   }
 
   public static void main(String[] args) {
+    System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
     if (args.length > 0 && args[0].equals(ONLY_CHECK_FLAG)) {
       logger.info("Perform db check only");
 

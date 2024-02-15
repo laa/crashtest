@@ -54,6 +54,7 @@ class DataLoader {
   public static final AtomicBoolean generateOOM = new AtomicBoolean();
 
   public static void main(String[] args) throws Exception {
+    System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
     logger.info("Parsing command lines");
 
     var argList = Arrays.asList(args);
