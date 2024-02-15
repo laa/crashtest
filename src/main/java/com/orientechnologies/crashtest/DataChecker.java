@@ -182,6 +182,9 @@ class DataChecker {
 
     commands.add(DataLoader.class.getName());
 
+    commands.add(ITERATION_FLAG);
+    commands.add(String.valueOf(iteration));
+
     if (addIndex) {
       commands.add(DataLoader.ADD_INDEX_FLAG);
     }
