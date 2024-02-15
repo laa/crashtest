@@ -40,6 +40,8 @@ class DataLoader {
   public static final String ADD_INDEX_FLAG = "-addIndex";
   public static final String ADD_BINARY_RECORDS_FLAG = "-addBinaryRecords";
 
+  public static final String ITERATION_FLAG = "-iteration";
+
   public static final String RANDOM_VALUE_FIELD = "randomValue";
   public static final String RANDOM_VALUES_FIELD = "randomValues";
   public static final String RANDOM_VALUE_INDEX = "RandomValueIndex";
@@ -47,25 +49,34 @@ class DataLoader {
   public static final String BINARY_FIELD = "binaryField";
   public static final String BINARY_FIELD_SIZE = "binaryFieldSize";
 
+  public static int iteration = 0;
+
   public static final AtomicBoolean generateOOM = new AtomicBoolean();
 
   public static void main(String[] args) throws Exception {
     logger.info("Parsing command lines");
 
-    final Set<String> argSet = new HashSet<>(Arrays.asList(args));
+    var argList = Arrays.asList(args);
 
     final boolean addIndex;
     final boolean addBinaryRecords;
 
-    if (argSet.contains(ADD_INDEX_FLAG)) {
-      logger.info("Additional indexes will be added to the crash tests");
+    var iterationIndex = argList.indexOf(ITERATION_FLAG);
+    if (iterationIndex >= 0) {
+      iteration = Integer.parseInt(argList.get(iterationIndex + 1));
+    }
+
+    if (argList.contains(ADD_INDEX_FLAG)) {
+      logger.info("Additional indexes will be added to the crash tests. Iteration {}",
+          iteration);
       addIndex = true;
     } else {
       addIndex = false;
     }
 
-    if (argSet.contains(ADD_BINARY_RECORDS_FLAG)) {
-      logger.info("Binary records will be stored in edge records of rings");
+    if (argList.contains(ADD_BINARY_RECORDS_FLAG)) {
+      logger.info("Binary records will be stored in edge records of rings. Iteration {}",
+          iteration);
       addBinaryRecords = true;
     } else {
       addBinaryRecords = false;
@@ -114,18 +125,19 @@ class DataLoader {
 
         addStopFileWatcher(stopFlag, loaderService);
 
-        logger.info("Start vertex addition, {} vertexes will be created", vertexesToAdd);
+        logger.info("Start vertex addition, {} vertexes will be created. Iteration {}",
+            vertexesToAdd, iteration);
         for (int i = 0; i < vertexesToAdd; i++) {
           OVertex vertex = session.newVertex(vCls);
           vertex.setProperty("id", i);
           vertex.save();
 
           if (i > 0 && i % 100_000 == 0) {
-            logger.info("{} vertexes were added", i);
+            logger.info("{} vertexes were added. Iteration {}", i, iteration);
           }
 
           if (stopFlag.get()) {
-            logger.info("Load of vertexes is stopped by stop file");
+            logger.info("Load of vertexes is stopped by stop file. Iteration {}", iteration);
             return;
           }
         }
@@ -135,8 +147,8 @@ class DataLoader {
       try (final ODatabasePool pool = new ODatabasePool(orientDB, "crashdb", "admin", "admin")) {
         final AtomicLong idGen = new AtomicLong();
 
-        logger.info("{} vertexes were created", vertexesToAdd);
-        logger.info("Start rings creation");
+        logger.info("{} vertexes were created. Iteration {}", vertexesToAdd, iteration);
+        logger.info("Start rings creation. Iteration {}", iteration);
         var threadsCount = Math.max(Runtime.getRuntime().availableProcessors(), 8);
         for (int i = 0; i < threadsCount; i++) {
           futures.add(loaderService.submit(
@@ -147,7 +159,7 @@ class DataLoader {
           try {
             future.get();
           } catch (Exception e) {
-            logger.error("Exception in loader", e);
+            logger.error("Exception in loader. Iteration " + iteration, e);
           }
         }
 
@@ -157,7 +169,7 @@ class DataLoader {
       loaderService.shutdown();
     }
 
-    logger.info("All loaders are finished, waiting for a shutdown");
+    logger.info("All loaders are finished, waiting for a shutdown. Iteration {}", iteration);
 
     //noinspection InfiniteLoopStatement
     while (true) {
@@ -167,14 +179,14 @@ class DataLoader {
   }
 
   private static void startHaltThread() throws IOException {
-    logger.info("Starting JVM halt thread");
+    logger.info("Starting JVM halt thread. Iteration {}", iteration);
 
     @SuppressWarnings("resource") final ServerSocket serverSocket = new ServerSocket(2048, 1, null);
     serverSocket.setReuseAddress(true);
 
     final Thread crashThread = new Thread(() -> {
       try {
-        logger.info("Halt thread is listening for the signal");
+        logger.info("Halt thread is listening for the signal. Iteration {}", iteration);
 
         while (true) {
           final Socket clientSocket = serverSocket.accept();
@@ -184,20 +196,21 @@ class DataLoader {
             final int value = crashStream.read();
 
             if (value == 42) {
-              logger.info("Halt signal is received, trying to halt JVM");
+              logger.info("Halt signal is received, trying to halt JVM. Iteration {}", iteration);
               Runtime.getRuntime().halt(-1);
             } else if (value == -1) {
-              logger.info("End of stream is reached in halt thread");
+              logger.info("End of stream is reached in halt thread. Iteration {}", iteration);
               break;
             } else {
-              logger.info("Unknown signal is received {} by halt thread, listening for next signal",
-                  value);
+              logger.info("Unknown signal is received {} by halt thread,"
+                      + " listening for next signal. Iteration {}",
+                  value, iteration);
             }
           }
         }
 
       } catch (IOException e) {
-        logger.error("Error during listening for JVM halt signal", e);
+        logger.error("Error during listening for JVM halt signal. Iteration " + iteration, e);
       }
     });
 
@@ -206,14 +219,14 @@ class DataLoader {
   }
 
   private static void startOOMThread() throws IOException {
-    logger.info("Starting OOM thread");
+    logger.info("Starting OOM thread. Iteration {}", iteration);
 
     @SuppressWarnings("resource") final ServerSocket serverSocket = new ServerSocket(1036, 1, null);
     serverSocket.setReuseAddress(true);
 
     final Thread crashThread = new Thread(() -> {
       try {
-        logger.info("OOM thread is listening for the signal");
+        logger.info("OOM thread is listening for the signal. Iteration {}", iteration);
 
         final Socket clientSocket = serverSocket.accept();
         final InputStream oomStream = clientSocket.getInputStream();
@@ -222,11 +235,12 @@ class DataLoader {
           final int value = oomStream.read();
 
           if (value == 42) {
-            logger.info("OOM signal is received, trying to pollute the heap");
+            logger.info("OOM signal is received, trying to pollute the heap. Iteration {}",
+                iteration);
             generateOOM.set(true);
             break;
           } else if (value == -1) {
-            logger.info("End of stream is reached in OOM thread");
+            logger.info("End of stream is reached in OOM thread. Iteration {}", iteration);
             break;
           } else {
             logger.info("Unknown signal is received by OOM thread {}, listening for next signal",
@@ -235,7 +249,7 @@ class DataLoader {
         }
 
       } catch (IOException e) {
-        logger.error("Error during listening for OOM signal", e);
+        logger.error("Error during listening for OOM signal. Iterations " + iteration, e);
       }
     });
 
