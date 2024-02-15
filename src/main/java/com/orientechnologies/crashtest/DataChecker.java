@@ -346,6 +346,8 @@ class DataChecker {
         resultSet.vertexStream().parallel().forEach(v -> {
           try (ODatabaseSession localSession =
               orientDB.open(dbName, "admin", "admin")) {
+            localSession.activateOnCurrentThread();
+
             final List<Long> ringIds = v.getProperty(RING_IDS);
             if (ringIds != null) {
               for (Long ringId : ringIds) {
