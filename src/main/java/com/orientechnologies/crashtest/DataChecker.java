@@ -341,16 +341,19 @@ class DataChecker {
       logger.info("Start DB check. Iteration {}", iteration);
       try (OResultSet resultSet = session.query("select from " + CRASH_V)) {
         resultSet.vertexStream().parallel().forEach(v -> {
-          final List<Long> ringIds = v.getProperty(RING_IDS);
-          if (ringIds != null) {
-            for (Long ringId : ringIds) {
-              checkRing(session, v, ringId, addIndex, addBinaryRecords);
+          try (ODatabaseSession localSession =
+              orientDB.open(dbName, "admin", "admin")) {
+            final List<Long> ringIds = v.getProperty(RING_IDS);
+            if (ringIds != null) {
+              for (Long ringId : ringIds) {
+                checkRing(localSession, v, ringId, addIndex, addBinaryRecords);
+              }
             }
-          }
 
-          final int cnt = counter.incrementAndGet();
-          if (cnt > 0 && cnt % 1000 == 0) {
-            logger.info("{} vertexes were checked. Iteration {}", cnt, iteration);
+            final int cnt = counter.incrementAndGet();
+            if (cnt > 0 && cnt % 1000 == 0) {
+              logger.info("{} vertexes were checked. Iteration {}", cnt, iteration);
+            }
           }
         });
       }
