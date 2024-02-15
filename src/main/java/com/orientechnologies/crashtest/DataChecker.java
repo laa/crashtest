@@ -41,6 +41,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.orientechnologies.crashtest.DataLoader.*;
 
 class DataChecker {
+  static {
+    System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
+  }
 
   private static final CrashMetadata CRASH_METADATA_MBEAN = new CrashMetadata();
   private static final String ONLY_CHECK_FLAG = "-onlyCheck";

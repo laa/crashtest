@@ -21,6 +21,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 class DataLoader {
+  static {
+    System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
+  }
 
   private static final Logger logger = LogManager.getLogger(DataLoader.class);
 
@@ -54,7 +57,7 @@ class DataLoader {
   public static final AtomicBoolean generateOOM = new AtomicBoolean();
 
   public static void main(String[] args) throws Exception {
-    System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
+
     logger.info("Parsing command lines");
 
     var argList = Arrays.asList(args);
