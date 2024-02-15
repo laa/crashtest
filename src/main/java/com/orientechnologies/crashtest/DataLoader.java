@@ -148,11 +148,13 @@ class DataLoader {
         final AtomicLong idGen = new AtomicLong();
 
         logger.info("{} vertexes were created. Iteration {}", vertexesToAdd, iteration);
-        logger.info("Start rings creation. Iteration {}", iteration);
         var threadsCount = Math.max(Runtime.getRuntime().availableProcessors(), 8);
+        logger.info("Start rings creation using {} loaders. Iteration {}", threadsCount,
+            iteration);
         for (int i = 0; i < threadsCount; i++) {
           futures.add(loaderService.submit(
-              new Loader(pool, idGen, addIndex, addBinaryRecords, stopFlag, vertexesToAdd)));
+              new Loader(pool, idGen, addIndex, addBinaryRecords, stopFlag, vertexesToAdd,
+                  iteration)));
         }
 
         for (Future<Void> future : futures) {

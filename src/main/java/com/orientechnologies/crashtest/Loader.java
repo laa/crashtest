@@ -32,16 +32,19 @@ class Loader implements Callable<Void> {
 
   private final int vertexesCount;
 
+  private final int iteration;
+
   private List<byte[]> payLoad = new ArrayList<>();
 
   Loader(ODatabasePool pool, AtomicLong idGen, boolean addIndex, boolean addBinaryRecords, AtomicBoolean stopFlag,
-      int vertexesCount) {
+      int vertexesCount, int iteration) {
     this.pool = pool;
     this.idGen = idGen;
     this.addIndex = addIndex;
     this.addBinaryRecrods = addBinaryRecords;
     this.stopFlag = stopFlag;
     this.vertexesCount = vertexesCount;
+    this.iteration = iteration;
   }
 
   @Override
@@ -64,13 +67,15 @@ class Loader implements Callable<Void> {
             ringsCreationCounter += ringsCount;
 
             if (ringsCreationCounter > 0 && ringsCreationCounter % 1000 == 0) {
-              logger.info("{} thread, {} rings were created", Thread.currentThread().getName(), ringsCreationCounter);
+              logger.info("{} thread, {} rings were created. Iteration {}",
+                  Thread.currentThread().getName(), ringsCreationCounter, iteration);
             }
           } else {
             ringsDeletionCounter += removeRing(random);
 
             if (ringsDeletionCounter > 0 && ringsDeletionCounter % 100 == 0) {
-              logger.info("{} thread, {} rings were deleted", Thread.currentThread().getName(), ringsDeletionCounter);
+              logger.info("{} thread, {} rings were deleted, Iteration {}",
+                  Thread.currentThread().getName(), ringsDeletionCounter, iteration);
             }
           }
         } catch (OutOfMemoryError e) {
@@ -78,15 +83,16 @@ class Loader implements Callable<Void> {
           System.gc();
           payLoad = new ArrayList<>();
 
-          logger.error("OOM in loader thread, ignore and repeat");
+          logger.error("OOM in loader thread, ignore and repeat. Iteration {}", iteration);
         }
       }
     } catch (RuntimeException | Error e) {
-      logger.error("Error during data load", e);
+      logger.error("Error during data load. Iteration " + iteration, e);
     }
 
     if (stopFlag.get()) {
-      logger.info("Thread {} was stopped, by stop file", Thread.currentThread().getName());
+      logger.info("Thread {} was stopped, by stop file. Iteration {}",
+          Thread.currentThread().getName(), iteration);
     }
 
     return null;
@@ -206,8 +212,9 @@ class Loader implements Callable<Void> {
             retryCounter++;
 
             if (retryCounter > MAX_RETRIES) {
-              logger.info("{}- Limit of ring retries is reached, thread stopped, {} rings were created",
-                  Thread.currentThread().getName(), ringsCounter);
+              logger.info("{}- Limit of ring retries is reached, thread stopped, "
+                      + "{} rings were created. Iteration {}",
+                  Thread.currentThread().getName(), ringsCounter, iteration);
               return -1;
             }
 
@@ -216,8 +223,9 @@ class Loader implements Callable<Void> {
               retryCounter++;
 
               if (retryCounter > MAX_RETRIES) {
-                logger.info("{} - Limit of ring retries is reached, thread stopped, {} rings were created",
-                    Thread.currentThread().getName(), ringsCounter);
+                logger.info("{} - Limit of ring retries is reached,"
+                        + " thread stopped, {} rings were created. Iteration {}",
+                    Thread.currentThread().getName(), ringsCounter, iteration);
                 return -1;
               }
 
