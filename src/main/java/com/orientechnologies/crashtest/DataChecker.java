@@ -352,7 +352,7 @@ class DataChecker {
     AtomicInteger counter = new AtomicInteger();
 
     try (var pool = Executors.newCachedThreadPool()) {
-      try (ODatabaseSession session = orientDB.open(dbName, "admin", "admin")) {
+      try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
         logger.info("Start DB check. Iteration {}", iteration);
         try (OResultSet resultSet = session.query("select @rid from " + CRASH_V)) {
           resultSet.stream().forEach(result -> vertexRidsList.add(result.getProperty("@rid")));
@@ -362,7 +362,7 @@ class DataChecker {
       var futures = new ArrayList<Future<?>>();
       for (var vertexRid : vertexRidsList) {
         futures.add(pool.submit(() -> {
-          try (ODatabaseSession session = orientDB.open(dbName, "admin", "admin")) {
+          try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
             var vertex = session.<OVertex>load(vertexRid);
             final List<Long> ringIds = vertex.getProperty(RING_IDS);
             if (ringIds != null) {

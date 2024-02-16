@@ -98,12 +98,12 @@ class DataLoader {
       }
 
       orientDB.execute("create database " + DB_NAME +
-          " plocal users (admin identified by 'admin' role admin)");
+          " plocal users (crash identified by 'crash' role admin)");
 
       final int vertexesToAdd =
           ThreadLocalRandom.current().nextInt(VERTEX_COUNT - 100_000) + 100_000;
 
-      try (final ODatabaseSession session = orientDB.open(DB_NAME, "admin", "admin")) {
+      try (final ODatabaseSession session = orientDB.open(DB_NAME, "crash", "crash")) {
         final OClass vCls = session.createVertexClass(CRASH_V);
 
         vCls.createProperty(V_ID, OType.INTEGER).createIndex(OClass.INDEX_TYPE.UNIQUE_HASH_INDEX);
@@ -148,7 +148,8 @@ class DataLoader {
       }
 
       final List<Future<Void>> futures = new ArrayList<>();
-      try (final ODatabasePool pool = new ODatabasePool(orientDB, "crashdb", "admin", "admin")) {
+      try (final ODatabasePool pool = new ODatabasePool(orientDB, "crashdb", "crash",
+          "crash")) {
         final AtomicLong idGen = new AtomicLong();
 
         logger.info("{} vertexes were created. Iteration {}", vertexesToAdd, iteration);
