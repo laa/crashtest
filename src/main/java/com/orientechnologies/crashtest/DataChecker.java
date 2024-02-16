@@ -372,7 +372,7 @@ class DataChecker {
             }
 
             final int cnt = counter.incrementAndGet();
-            if (cnt > 0 && cnt % 1000 == 0) {
+            if (cnt > 0 && cnt % 10_000 == 0) {
               logger.info("{} vertexes were checked. Iteration {}", cnt, iteration);
             }
 
