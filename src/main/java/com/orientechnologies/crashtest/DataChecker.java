@@ -4,6 +4,7 @@ import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.db.ODatabaseSession;
 import com.orientechnologies.orient.core.db.OrientDB;
 import com.orientechnologies.orient.core.db.OrientDBConfig;
+import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.record.ODirection;
 import com.orientechnologies.orient.core.record.OEdge;
 import com.orientechnologies.orient.core.record.OVertex;
@@ -41,6 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.orientechnologies.crashtest.DataLoader.*;
 
 class DataChecker {
+
   static {
     System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
   }
@@ -351,57 +353,55 @@ class DataChecker {
       var cores = Runtime.getRuntime().availableProcessors();
       try (var pool = Executors.newCachedThreadPool()) {
         logger.info("Start DB check. Iteration {}", iteration);
-        try (OResultSet resultSet = session.query("select from " + CRASH_V)) {
-          var futures = new ArrayList<Future<?>>();
+        var vertexRidsList = new ArrayList<ORID>();
+        try (OResultSet resultSet = session.query("select @rid from " + CRASH_V)) {
+          resultSet.stream().forEach(result -> vertexRidsList.add(result.getProperty("@rid")));
+        }
 
-          try (var steam = resultSet.vertexStream()) {
-            var iterator = steam.iterator();
-            while (iterator.hasNext()) {
-              var vertex = iterator.next();
-              futures.add(pool.submit(() -> {
-                try (ODatabaseSession localSession = orientDB.open(dbName, "admin", "admin")) {
-                  localSession.activateOnCurrentThread();
-
-                  final List<Long> ringIds = vertex.getProperty(RING_IDS);
-                  if (ringIds != null) {
-                    for (Long ringId : ringIds) {
-                      checkRing(localSession, vertex, ringId, addIndex, addBinaryRecords);
-                    }
-                  }
-
-                  final int cnt = counter.incrementAndGet();
-                  if (cnt > 0 && cnt % 1000 == 0) {
-                    logger.info("{} vertexes were checked. Iteration {}", cnt, iteration);
-                  }
-
+        var futures = new ArrayList<Future<?>>();
+        for (var vertexRid : vertexRidsList) {
+          futures.add(pool.submit(() -> {
+            try (ODatabaseSession localSession = orientDB.open(dbName, "admin", "admin")) {
+              var vertex = localSession.<OVertex>load(vertexRid);
+              final List<Long> ringIds = vertex.getProperty(RING_IDS);
+              if (ringIds != null) {
+                for (Long ringId : ringIds) {
+                  checkRing(localSession, vertex, ringId, addIndex, addBinaryRecords);
                 }
-              }));
+              }
 
-              if (futures.size() >= cores) {
-                for (var future : futures) {
-                  try {
-                    future.get();
-                  } catch (InterruptedException | ExecutionException e) {
-                    throw new RuntimeException(e);
-                  }
-                }
+              final int cnt = counter.incrementAndGet();
+              if (cnt > 0 && cnt % 1000 == 0) {
+                logger.info("{} vertexes were checked. Iteration {}", cnt, iteration);
+              }
 
-                futures.clear();
+            }
+          }));
+
+          if (futures.size() >= cores) {
+            for (var future : futures) {
+              try {
+                future.get();
+              } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
               }
             }
-          }
 
-          for (var future : futures) {
-            try {
-              future.get();
-            } catch (InterruptedException | ExecutionException e) {
-              throw new RuntimeException(e);
-            }
+            futures.clear();
+          }
+        }
+
+        for (var future : futures) {
+          try {
+            future.get();
+          } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
           }
         }
       }
     }
   }
+
 
   private static void checkRing(final ODatabaseSession session, OVertex start, long ringId,
       final boolean addIndex,
