@@ -20,10 +20,25 @@ class CrashCountDownTask extends TimerTask {
 
   private final int iteration;
 
-  CrashCountDownTask(long secondsToWait, boolean generateOOM, int iteration) {
+
+  private final boolean addIndex;
+
+  private final boolean addBinaryRecords;
+  private final boolean useSmallDiskCache;
+  private final boolean useSmallWal;
+  private final boolean generateOom;
+
+  CrashCountDownTask(long secondsToWait, boolean generateOOM, int iteration, boolean addIndex,
+      boolean addBinaryRecords, boolean useSmallDiskCache, boolean useSmallWal,
+      boolean generateOom) {
     this.crashTs = System.currentTimeMillis() + secondsToWait * 1000;
     this.generateOOM = generateOOM;
     this.iteration = iteration;
+    this.addIndex = addIndex;
+    this.addBinaryRecords = addBinaryRecords;
+    this.useSmallDiskCache = useSmallDiskCache;
+    this.useSmallWal = useSmallWal;
+    this.generateOom = generateOom;
   }
 
   @Override
@@ -49,7 +64,11 @@ class CrashCountDownTask extends TimerTask {
       interval -= mm * (60 * 1000);
 
       final int ss = (int) (interval / 1000);
-      logger.info("{}:{}:{} left till database crash. Iteration {}", hh, mm, ss,
+      logger.info("{}:{}:{} left till database crash:"
+              + " (addIndex {}, addBinaryRecords {}, useSmallDiskCache {},"
+              + " useSmallWal {}, generate OOM {}). Iteration {}", hh, mm, ss,
+          addIndex,
+          addBinaryRecords, useSmallDiskCache, useSmallWal, generateOom,
           iteration);
     }
   }
