@@ -11,15 +11,19 @@ import java.net.Socket;
 import java.util.TimerTask;
 
 class CrashCountDownTask extends TimerTask {
+
   private static final Logger logger = LogManager.getLogger(CrashCountDownTask.class);
 
-  private final long    crashTs;
+  private final long crashTs;
   private final boolean generateOOM;
-  private       boolean oomWasTriggered;
+  private boolean oomWasTriggered;
 
-  CrashCountDownTask(long secondsToWait, boolean generateOOM) {
+  private final int iteration;
+
+  CrashCountDownTask(long secondsToWait, boolean generateOOM, int iteration) {
     this.crashTs = System.currentTimeMillis() + secondsToWait * 1000;
     this.generateOOM = generateOOM;
+    this.iteration = iteration;
   }
 
   @Override
@@ -45,7 +49,8 @@ class CrashCountDownTask extends TimerTask {
       interval -= mm * (60 * 1000);
 
       final int ss = (int) (interval / 1000);
-      logger.info("{}:{}:{} left till database crash", hh, mm, ss);
+      logger.info("{}:{}:{} left till database crash. Iteration {}", hh, mm, ss,
+          iteration);
     }
   }
 

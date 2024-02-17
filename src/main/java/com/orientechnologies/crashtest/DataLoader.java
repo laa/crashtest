@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 class DataLoader {
+
   static {
     System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
   }
@@ -135,10 +136,6 @@ class DataLoader {
           OVertex vertex = session.newVertex(vCls);
           vertex.setProperty("id", i);
           vertex.save();
-
-          if (i > 0 && i % 100_000 == 0) {
-            logger.info("{} vertexes were added. Iteration {}", i, iteration);
-          }
 
           if (stopFlag.get()) {
             logger.info("Load of vertexes is stopped by stop file. Iteration {}", iteration);

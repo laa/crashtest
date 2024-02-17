@@ -216,7 +216,8 @@ class DataChecker {
         addBinaryRecords, useSmallDiskCache, useSmallWal, generateOom, secondsToWait, iteration);
 
     final Timer timer = new Timer();
-    timer.schedule(new CrashCountDownTask(secondsToWait, generateOom), 30 * 1000, 30 * 1000);
+    timer.schedule(new CrashCountDownTask(secondsToWait, generateOom, iteration),
+        30 * 1000, 30 * 1000);
 
     final boolean completed = process.waitFor(secondsToWait, TimeUnit.SECONDS);
     timer.cancel();

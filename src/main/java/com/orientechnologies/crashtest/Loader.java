@@ -65,18 +65,8 @@ class Loader implements Callable<Void> {
             }
 
             ringsCreationCounter += ringsCount;
-
-            if (ringsCreationCounter > 0 && ringsCreationCounter % 1000 == 0) {
-              logger.info("{} thread, {} rings were created. Iteration {}",
-                  Thread.currentThread().getName(), ringsCreationCounter, iteration);
-            }
           } else {
             ringsDeletionCounter += removeRing(random);
-
-            if (ringsDeletionCounter > 0 && ringsDeletionCounter % 100 == 0) {
-              logger.info("{} thread, {} rings were deleted, Iteration {}",
-                  Thread.currentThread().getName(), ringsDeletionCounter, iteration);
-            }
           }
         } catch (OutOfMemoryError e) {
           payLoad = null;
