@@ -44,9 +44,6 @@ import static com.orientechnologies.crashtest.DataLoader.*;
 class DataChecker {
 
   static {
-    OGlobalConfiguration.DISK_CACHE_PAGE_SIZE.setValue(4 *1024);
-    OGlobalConfiguration.SBTREE_MAX_KEY_SIZE.setValue(812);
-
     System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
   }
 
