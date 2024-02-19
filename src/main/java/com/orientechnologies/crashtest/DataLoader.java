@@ -4,6 +4,7 @@ import com.orientechnologies.orient.core.db.*;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.OVertex;
+import java.net.Inet4Address;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -185,7 +186,8 @@ class DataLoader {
   private static void startHaltThread() throws IOException {
     logger.info("Starting JVM halt thread. Iteration {}", iteration);
 
-    @SuppressWarnings("resource") final ServerSocket serverSocket = new ServerSocket(2048, 1, null);
+    @SuppressWarnings("resource") final ServerSocket serverSocket = new ServerSocket(2048, 1,
+        Inet4Address.getLocalHost());
     serverSocket.setReuseAddress(true);
 
     final Thread crashThread = new Thread(() -> {
@@ -225,7 +227,8 @@ class DataLoader {
   private static void startOOMThread() throws IOException {
     logger.info("Starting OOM thread. Iteration {}", iteration);
 
-    @SuppressWarnings("resource") final ServerSocket serverSocket = new ServerSocket(1036, 1, null);
+    @SuppressWarnings("resource") final ServerSocket serverSocket = new ServerSocket(1036, 1,
+        Inet4Address.getLocalHost());
     serverSocket.setReuseAddress(true);
 
     final Thread crashThread = new Thread(() -> {
