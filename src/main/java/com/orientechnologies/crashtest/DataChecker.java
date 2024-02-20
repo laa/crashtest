@@ -13,7 +13,6 @@ import com.orientechnologies.orient.core.storage.OChecksumMode;
 import java.lang.management.ManagementFactory;
 import java.nio.file.FileVisitResult;
 import java.nio.file.SimpleFileVisitor;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -63,7 +62,7 @@ class DataChecker {
 
       final String dbPath;
       if (args.length >= 2) {
-          dbPath =args[1];
+        dbPath = args[1];
       } else {
         dbPath = "target/databases";
       }
@@ -286,6 +285,7 @@ class DataChecker {
     try {
       copyFolder(Paths.get(DATABASES_PATH).resolve(DB_NAME), archiveDbPath);
     } catch (IOException e) {
+      logger.error("Error during copying of database", e);
       throw new RuntimeException(e);
     }
 
@@ -326,8 +326,7 @@ class DataChecker {
 
       @Override
       public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        Files.copy(file, target.resolve(source.relativize(file)),
-            StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(file, target.resolve(source.relativize(file)));
         return FileVisitResult.CONTINUE;
       }
     });
@@ -347,6 +346,8 @@ class DataChecker {
         return FileVisitResult.CONTINUE;
       }
     });
+
+    Files.deleteIfExists(path);
   }
 
 
