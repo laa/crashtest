@@ -11,7 +11,7 @@
         <repository>
             <id>sonatype-oss-snapshots</id>
             <name>Sonatype OSS Snapshot Repository</name>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <url>https://packages.jetbrains.team/maven/p/xodus/orientdb-daily</url>
             <releases>
                 <enabled>false</enabled>
             </releases>
