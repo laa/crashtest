@@ -366,56 +366,63 @@ class DataChecker {
     var vertexRidsList = new ArrayList<ORID>();
     AtomicInteger counter = new AtomicInteger();
 
-    try (var pool = Executors.newCachedThreadPool()) {
-      try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
-        logger.info("Start DB check. Iteration {}", iteration);
-        try (OResultSet resultSet = session.query("select @rid from " + CRASH_V)) {
-          resultSet.stream().forEach(result -> vertexRidsList.add(result.getProperty("@rid")));
-        }
+    var crashTimer = new Timer();
+    crashTimer.schedule(new TimerTask() {
+      @Override
+      public void run() {
+        logger.info("{} vertexes were checked. Iteration {}", counter.get(),
+            iteration);
       }
+    }, 2 * 60 * 1000, 2 * 60 * 1000);
 
-      var futures = new ArrayList<Future<?>>();
-      for (var vertexRid : vertexRidsList) {
-        futures.add(pool.submit(() -> {
-          try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
-            var vertex = session.<OVertex>load(vertexRid);
-            final List<Long> ringIds = vertex.getProperty(RING_IDS);
-            if (ringIds != null) {
-              for (Long ringId : ringIds) {
-                checkRing(session, vertex, ringId, addIndex, addBinaryRecords);
+    try {
+      try (var pool = Executors.newCachedThreadPool()) {
+        try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
+          logger.info("Start DB check. Iteration {}", iteration);
+          try (OResultSet resultSet = session.query("select @rid from " + CRASH_V)) {
+            resultSet.stream().forEach(result -> vertexRidsList.add(result.getProperty("@rid")));
+          }
+        }
+
+        var futures = new ArrayList<Future<?>>();
+        for (var vertexRid : vertexRidsList) {
+          futures.add(pool.submit(() -> {
+            try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
+              var vertex = session.<OVertex>load(vertexRid);
+              final List<Long> ringIds = vertex.getProperty(RING_IDS);
+              if (ringIds != null) {
+                for (Long ringId : ringIds) {
+                  checkRing(session, vertex, ringId, addIndex, addBinaryRecords);
+                }
+              }
+              counter.incrementAndGet();
+            }
+          }));
+
+          if (futures.size() >= cores) {
+            for (var future : futures) {
+              try {
+                future.get();
+              } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
               }
             }
 
-            final int cnt = counter.incrementAndGet();
-            if (cnt > 0 && cnt % 10_000 == 0) {
-              logger.info("{} vertexes were checked. Iteration {}", cnt, iteration);
-            }
-
+            futures.clear();
           }
-        }));
+        }
 
-        if (futures.size() >= cores) {
-          for (var future : futures) {
-            try {
-              future.get();
-            } catch (InterruptedException | ExecutionException e) {
-              throw new RuntimeException(e);
-            }
+        for (var future : futures) {
+          try {
+            future.get();
+          } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
           }
-
-          futures.clear();
         }
       }
-
-      for (var future : futures) {
-        try {
-          future.get();
-        } catch (InterruptedException | ExecutionException e) {
-          throw new RuntimeException(e);
-        }
-      }
+    } finally {
+      crashTimer.cancel();
     }
-
   }
 
 
