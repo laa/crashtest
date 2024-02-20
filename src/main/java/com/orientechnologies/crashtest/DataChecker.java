@@ -61,8 +61,19 @@ class DataChecker {
     if (args.length > 0 && args[0].equals(ONLY_CHECK_FLAG)) {
       logger.info("Perform db check only");
 
-      final String dbPath = args[1];
-      final String dbName = args[2];
+      final String dbPath;
+      if (args.length >= 2) {
+          dbPath =args[1];
+      } else {
+        dbPath = "target/databases";
+      }
+
+      final String dbName;
+      if (args.length >= 3) {
+        dbName = args[2];
+      } else {
+        dbName = "crashdb";
+      }
 
       final Set<String> argSet = new HashSet<>(Arrays.asList(args).subList(3, args.length));
 
