@@ -74,17 +74,18 @@ class DataChecker {
         dbName = "crashdb";
       }
 
-      final Set<String> argSet = new HashSet<>(Arrays.asList(args).subList(3, args.length));
-
       boolean addIndexes = false;
       boolean addBinaryRecords = false;
 
-      if (argSet.contains(DataLoader.ADD_INDEX_FLAG)) {
-        addIndexes = true;
-      }
+      if (args.length > 3) {
+        final Set<String> argSet = new HashSet<>(Arrays.asList(args).subList(3, args.length));
+        if (argSet.contains(DataLoader.ADD_INDEX_FLAG)) {
+          addIndexes = true;
+        }
 
-      if (argSet.contains(DataLoader.ADD_BINARY_RECORDS_FLAG)) {
-        addBinaryRecords = true;
+        if (argSet.contains(DataLoader.ADD_BINARY_RECORDS_FLAG)) {
+          addBinaryRecords = true;
+        }
       }
 
       executeDbCheckOnly(dbPath, dbName, addIndexes, addBinaryRecords);
