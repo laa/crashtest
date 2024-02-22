@@ -463,8 +463,8 @@ class DataChecker {
           final int randomValue = e.getProperty(DataLoader.RANDOM_VALUE_FIELD);
 
           try (final OResultSet resultSet = session
-              .query("select * from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = "
-                  + randomValue)) {
+              .query("select * from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = ?"
+                  , randomValue)) {
             if (resultSet.edgeStream().map(OEdge::getIdentity).collect(Collectors.toSet())
                 .contains(e.getIdentity())) {
               throw new IllegalStateException(
@@ -476,8 +476,8 @@ class DataChecker {
 
           for (int rndVal : randomValues) {
             try (final OResultSet resultSet = session
-                .query("select * from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = "
-                    + rndVal)) {
+                .query("select * from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = ?"
+                    , rndVal)) {
               if (resultSet.edgeStream().map(OEdge::getIdentity).collect(Collectors.toSet())
                   .contains(e.getIdentity())) {
                 throw new IllegalStateException(
