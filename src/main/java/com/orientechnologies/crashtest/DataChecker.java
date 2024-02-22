@@ -17,6 +17,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MalformedObjectNameException;
@@ -464,8 +465,8 @@ class DataChecker {
           try (final OResultSet resultSet = session
               .query("select * from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = "
                   + randomValue)) {
-            if (resultSet.edgeStream()
-                .noneMatch(edge -> edge.getIdentity().equals(e.getIdentity()))) {
+            if (resultSet.edgeStream().map(OEdge::getIdentity).collect(Collectors.toSet())
+                .contains(e.getIdentity())) {
               throw new IllegalStateException(
                   "Random value present inside of edge is absent in index");
             }
@@ -477,8 +478,8 @@ class DataChecker {
             try (final OResultSet resultSet = session
                 .query("select * from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = "
                     + rndVal)) {
-              if (resultSet.edgeStream()
-                  .noneMatch(edge -> edge.getIdentity().equals(e.getIdentity()))) {
+              if (resultSet.edgeStream().map(OEdge::getIdentity).collect(Collectors.toSet())
+                  .contains(e.getIdentity())) {
                 throw new IllegalStateException(
                     "Random values present inside of edge is absent in index");
               }
