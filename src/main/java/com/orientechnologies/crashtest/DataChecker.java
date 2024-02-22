@@ -463,22 +463,22 @@ class DataChecker {
 
           try (final OResultSet resultSet = session
               .query("select * from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = "
-                  + randomValue)) {
-            if (resultSet.edgeStream()
-                .noneMatch(edge -> edge.getIdentity().equals(e.getIdentity()))) {
+                  + "? and @rid = ?", randomValue, e.getIdentity())) {
+            if (!resultSet.hasNext() || !Objects.equals(resultSet.next().getRecordId(),
+                e.getIdentity())) {
               throw new IllegalStateException(
                   "Random value present inside of edge is absent in index");
             }
           }
 
           final List<Integer> randomValues = e.getProperty(DataLoader.RANDOM_VALUES_FIELD);
-
           for (int rndVal : randomValues) {
             try (final OResultSet resultSet = session
-                .query("select * from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = "
+                .query("select * from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = ? "
+                    + "and @rid = ?",
                     + rndVal)) {
-              if (resultSet.edgeStream()
-                  .noneMatch(edge -> edge.getIdentity().equals(e.getIdentity()))) {
+              if (!resultSet.hasNext() || !Objects.equals(resultSet.next().getRecordId(),
+                  e.getIdentity())) {
                 throw new IllegalStateException(
                     "Random values present inside of edge is absent in index");
               }
