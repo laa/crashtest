@@ -42,11 +42,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.orientechnologies.crashtest.DataLoader.*;
 
 class DataChecker {
-
-  static {
-    System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
-  }
-
   private static final CrashMetadata CRASH_METADATA_MBEAN = new CrashMetadata();
   private static final String ONLY_CHECK_FLAG = "-onlyCheck";
 
@@ -57,7 +52,6 @@ class DataChecker {
   }
 
   public static void main(String[] args) {
-    System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
     if (args.length > 0 && args[0].equals(ONLY_CHECK_FLAG)) {
       logger.info("Perform db check only");
 

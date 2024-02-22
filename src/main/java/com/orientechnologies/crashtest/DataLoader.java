@@ -22,11 +22,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 class DataLoader {
-
-  static {
-    System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
-  }
-
   private static final Logger logger = LogManager.getLogger(DataLoader.class);
 
   static final int VERTEX_COUNT = 10_000_000;
