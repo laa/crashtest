@@ -387,7 +387,7 @@ class DataChecker {
           public void run() {
             var checked = counter.get();
             logger.info("{} vertexes out of {} were checked ({}%). Iteration {}", checked,
-                vertexCount, 100 * (checked / vertexCount), iteration);
+                vertexCount, (100 * checked) / vertexCount, iteration);
           }
         }, 30 * 1000, 30 * 1000);
 
