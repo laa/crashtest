@@ -58,14 +58,14 @@ class DataChecker {
         logger.info("Perform db check only");
 
         final String dbPath;
-        if (args.length >= 2) {
+        if (args.length >= 2 && args[1].isEmpty()) {
           dbPath = args[1];
         } else {
           dbPath = "target/databases";
         }
 
         final String dbName;
-        if (args.length >= 3) {
+        if (args.length >= 3 && args[2].isEmpty()) {
           dbName = args[2];
         } else {
           dbName = "crashdb";
