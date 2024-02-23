@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.orientechnologies.crashtest.DataLoader.*;
 
 class DataChecker {
+
   private static final CrashMetadata CRASH_METADATA_MBEAN = new CrashMetadata();
   private static final String ONLY_CHECK_FLAG = "-onlyCheck";
 
@@ -52,40 +53,46 @@ class DataChecker {
   }
 
   public static void main(String[] args) {
-    if (args.length > 0 && args[0].equals(ONLY_CHECK_FLAG)) {
-      logger.info("Perform db check only");
+    try {
+      if (args.length > 0 && args[0].equals(ONLY_CHECK_FLAG)) {
+        logger.info("Perform db check only");
 
-      final String dbPath;
-      if (args.length >= 2) {
-        dbPath = args[1];
-      } else {
-        dbPath = "target/databases";
-      }
-
-      final String dbName;
-      if (args.length >= 3) {
-        dbName = args[2];
-      } else {
-        dbName = "crashdb";
-      }
-
-      boolean addIndexes = false;
-      boolean addBinaryRecords = false;
-
-      if (args.length > 3) {
-        final Set<String> argSet = new HashSet<>(Arrays.asList(args).subList(3, args.length));
-        if (argSet.contains(DataLoader.ADD_INDEX_FLAG)) {
-          addIndexes = true;
+        final String dbPath;
+        if (args.length >= 2) {
+          dbPath = args[1];
+        } else {
+          dbPath = "target/databases";
         }
 
-        if (argSet.contains(DataLoader.ADD_BINARY_RECORDS_FLAG)) {
-          addBinaryRecords = true;
+        final String dbName;
+        if (args.length >= 3) {
+          dbName = args[2];
+        } else {
+          dbName = "crashdb";
         }
-      }
 
-      executeDbCheckOnly(dbPath, dbName, addIndexes, addBinaryRecords);
-    } else {
-      executeCrashSuite();
+        boolean addIndexes = false;
+        boolean addBinaryRecords = false;
+
+        if (args.length > 3) {
+          final Set<String> argSet = new HashSet<>(Arrays.asList(args).subList(3, args.length));
+          if (argSet.contains(DataLoader.ADD_INDEX_FLAG)) {
+            addIndexes = true;
+          }
+
+          if (argSet.contains(DataLoader.ADD_BINARY_RECORDS_FLAG)) {
+            addBinaryRecords = true;
+          }
+        }
+
+        executeDbCheckOnly(dbPath, dbName, addIndexes, addBinaryRecords);
+      } else {
+        executeCrashSuite();
+      }
+    } catch (Exception e) {
+      CRASH_METADATA_MBEAN.setCrashDetected(true);
+      logger.error("Error during crash test execution", e);
+      throw e;
     }
   }
 
@@ -372,50 +379,50 @@ class DataChecker {
     }, 2 * 60 * 1000, 2 * 60 * 1000);
 
     try {
-      try (var pool = Executors.newCachedThreadPool()) {
-        try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
-          logger.info("Start DB check. Iteration {}", iteration);
-          try (OResultSet resultSet = session.query("select @rid from " + CRASH_V)) {
-            resultSet.stream().forEach(result -> vertexRidsList.add(result.getProperty("@rid")));
-          }
-        }
-
-        var futures = new ArrayList<Future<?>>();
-        for (var vertexRid : vertexRidsList) {
-          futures.add(pool.submit(() -> {
-            try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
-              var vertex = session.<OVertex>load(vertexRid);
-              final List<Long> ringIds = vertex.getProperty(RING_IDS);
-              if (ringIds != null) {
-                for (Long ringId : ringIds) {
-                  checkRing(session, vertex, ringId, addIndex, addBinaryRecords);
-                }
-              }
-              counter.incrementAndGet();
-            }
-          }));
-
-          if (futures.size() >= cores) {
-            for (var future : futures) {
-              try {
-                future.get();
-              } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-              }
-            }
-
-            futures.clear();
-          }
-        }
-
-        for (var future : futures) {
-          try {
-            future.get();
-          } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-          }
+      var pool = Executors.newCachedThreadPool();
+      try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
+        logger.info("Start DB check. Iteration {}", iteration);
+        try (OResultSet resultSet = session.query("select @rid from " + CRASH_V)) {
+          resultSet.stream().forEach(result -> vertexRidsList.add(result.getProperty("@rid")));
         }
       }
+
+      var futures = new ArrayList<Future<?>>();
+      for (var vertexRid : vertexRidsList) {
+        futures.add(pool.submit(() -> {
+          try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
+            var vertex = session.<OVertex>load(vertexRid);
+            final List<Long> ringIds = vertex.getProperty(RING_IDS);
+            if (ringIds != null) {
+              for (Long ringId : ringIds) {
+                checkRing(session, vertex, ringId, addIndex, addBinaryRecords);
+              }
+            }
+            counter.incrementAndGet();
+          }
+        }));
+
+        if (futures.size() >= cores) {
+          for (var future : futures) {
+            try {
+              future.get();
+            } catch (InterruptedException | ExecutionException e) {
+              throw new RuntimeException(e);
+            }
+          }
+
+          futures.clear();
+        }
+      }
+
+      for (var future : futures) {
+        try {
+          future.get();
+        } catch (InterruptedException | ExecutionException e) {
+          throw new RuntimeException(e);
+        }
+      }
+      pool.shutdown();
     } finally {
       crashTimer.cancel();
     }

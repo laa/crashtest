@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.orientechnologies</groupId>
@@ -21,6 +21,10 @@
             </snapshots>
         </repository>
     </repositories>
+    <properties>
+        <datachecker.param.1/>
+        <datachecker.param.2/>
+    </properties>
     <build>
         <plugins>
             <plugin>
@@ -35,16 +39,75 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.1</version>
-                <configuration>
-                    <executable>java</executable>
-                    <arguments>
-                        <argument>-classpath</argument>
-                        <classpath/>
-                        <argument>-Xmx8g</argument>
-                        <argument>com.orientechnologies.crashtest.DataChecker</argument>
-                    </arguments>
-                </configuration>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>orientdb-crash-test</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-Xmx8g</argument>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>com.orientechnologies.crashtest.DataChecker</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>orientdb-crash-test-debug</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005</argument>
+                                <argument>-Xmx8g</argument>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>com.orientechnologies.crashtest.DataChecker</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>orientdb-check</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-Xmx8g</argument>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>com.orientechnologies.crashtest.DataChecker</argument>
+                                <argument>${datachecker.param.1}</argument>
+                                <argument>${datachecker.param.2}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>orientdb-check-debug</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005</argument>
+                                <argument>-Xmx8g</argument>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>com.orientechnologies.crashtest.DataChecker</argument>
+                                <argument>${datachecker.param.1}</argument>
+                                <argument>${datachecker.param.2}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -58,8 +121,10 @@
                         </goals>
                         <configuration>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.orientechnologies.crashtest.DataChecker</mainClass>
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.orientechnologies.crashtest.DataChecker
+                                    </mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
