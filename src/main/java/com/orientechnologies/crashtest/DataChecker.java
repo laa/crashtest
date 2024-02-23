@@ -45,6 +45,9 @@ class DataChecker {
 
   private static final CrashMetadata CRASH_METADATA_MBEAN = new CrashMetadata();
   private static final String ONLY_CHECK_FLAG = "-onlyCheck";
+  private static final String DB_PATH_FLAG = "-dbPath";
+  private static final String DB_NAME_FLAG = "-dbName";
+
 
   private static final Logger logger = LogManager.getLogger(DataChecker.class);
 
@@ -54,35 +57,35 @@ class DataChecker {
 
   public static void main(String[] args) {
     try {
-      if (args.length > 0 && args[0].equals(ONLY_CHECK_FLAG)) {
+      var argList = Arrays.asList(args);
+      if (argList.contains(ONLY_CHECK_FLAG)) {
         logger.info("Perform db check only");
 
+        var dpPathIndex = argList.indexOf(DB_PATH_FLAG);
         final String dbPath;
-        if (args.length >= 2 && args[1].isEmpty()) {
-          dbPath = args[1];
+        if (dpPathIndex != -1) {
+          dbPath = argList.get(dpPathIndex + 1);
         } else {
-          dbPath = "target/databases";
+          dbPath = DATABASES_PATH;
         }
 
+        var dpNameIndex = argList.indexOf(DB_NAME_FLAG);
         final String dbName;
-        if (args.length >= 3 && args[2].isEmpty()) {
-          dbName = args[2];
+        if (dpNameIndex != -1) {
+          dbName = argList.get(dpNameIndex + 1);
         } else {
-          dbName = "crashdb";
+          dbName = DB_NAME;
         }
 
         boolean addIndexes = false;
         boolean addBinaryRecords = false;
 
-        if (args.length > 3) {
-          final Set<String> argSet = new HashSet<>(Arrays.asList(args).subList(3, args.length));
-          if (argSet.contains(DataLoader.ADD_INDEX_FLAG)) {
-            addIndexes = true;
-          }
+        if (argList.contains(DataLoader.ADD_INDEX_FLAG)) {
+          addIndexes = true;
+        }
 
-          if (argSet.contains(DataLoader.ADD_BINARY_RECORDS_FLAG)) {
-            addBinaryRecords = true;
-          }
+        if (argList.contains(DataLoader.ADD_BINARY_RECORDS_FLAG)) {
+          addBinaryRecords = true;
         }
 
         executeDbCheckOnly(dbPath, dbName, addIndexes, addBinaryRecords);
@@ -370,18 +373,24 @@ class DataChecker {
     AtomicInteger counter = new AtomicInteger();
 
     var crashTimer = new Timer();
-    crashTimer.schedule(new TimerTask() {
-      @Override
-      public void run() {
-        logger.info("{} vertexes were checked. Iteration {}", counter.get(),
-            iteration);
-      }
-    }, 2 * 60 * 1000, 2 * 60 * 1000);
-
     try {
       var pool = Executors.newCachedThreadPool();
       try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
         logger.info("Start DB check. Iteration {}", iteration);
+        int vertexCount;
+        try (OResultSet resultSet = session.query("select count(*) from " + CRASH_V)) {
+          vertexCount =
+              resultSet.stream().findFirst().orElseThrow().<Long>getProperty("count(*)").intValue();
+        }
+        crashTimer.schedule(new TimerTask() {
+          @Override
+          public void run() {
+            var checked = counter.get();
+            logger.info("{} vertexes out of {} were checked ({}%). Iteration {}", checked,
+                vertexCount, 100 * (checked / vertexCount), iteration);
+          }
+        }, 30 * 1000, 30 * 1000);
+
         try (OResultSet resultSet = session.query("select @rid from " + CRASH_V)) {
           resultSet.stream().forEach(result -> vertexRidsList.add(result.getProperty("@rid")));
         }
