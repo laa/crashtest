@@ -104,6 +104,7 @@
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>com.orientechnologies.crashtest.DataChecker</argument>
+                                <argument>-onlyCheck</argument>
                                 <argument>${datachecker.param.1}</argument>
                                 <argument>${datachecker.param.2}</argument>
                             </arguments>
