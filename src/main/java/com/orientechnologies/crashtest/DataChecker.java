@@ -149,22 +149,23 @@ class DataChecker {
         final boolean useSmallWal = random.nextBoolean();
         final boolean generateOOM = false;
 
-        if (startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache, useSmallWal,
-            generateOOM, iteration)) {
-          logger.info("Wait for 1 min to be sure that all file locks are released, {} iteration",
-              iteration);
-          //noinspection BusyWait
-          Thread.sleep(60 * 1000);
+        var lastIterations = startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache,
+            useSmallWal,
+            generateOOM, iteration);
+        logger.info("Wait for 1 min to be sure that all file locks are released, {} iteration",
+            iteration);
+        //noinspection BusyWait
+        Thread.sleep(60 * 1000);
 
-          logger.info("DB size is {} mb, {} iteration",
-              calculateDirectorySize(DATABASES_PATH + File.separator + DB_NAME) / (1024 * 1024),
-              iteration);
+        logger.info("DB size is {} mb, {} iteration",
+            calculateDirectorySize(DATABASES_PATH + File.separator + DB_NAME) / (1024 * 1024),
+            iteration);
 
-          checkDatabase(addIndex, addBinaryRecords, iteration);
-        } else {
-          return;
-        }
+        checkDatabase(addIndex, addBinaryRecords, iteration);
         logger.info("Crash test is completed");
+        if (lastIterations) {
+          break;
+        }
       }
     } catch (Exception e) {
       logger.error("Error during crash test execution, iteratiion " + iteration, e);
@@ -240,33 +241,40 @@ class DataChecker {
     final boolean completed = process.waitFor(secondsToWait, TimeUnit.SECONDS);
     timer.cancel();
 
-    if (completed) {
-      logger.error("Data load is completed successfully nothing to check. Iteration {}", iteration);
+    if (completed && process.exitValue() == 0) {
+      logger.error("Data load is completed successfully, "
+          + "test will be finished after the Db check.. Iteration {}", iteration);
       return false;
     } else {
 
-      final boolean killSignal = random.nextBoolean();
-
-      if (killSignal) {
-        logger.info("Process will be destroyed by sending of KILL signal. Iteration {}",
-            iteration);
-        process.destroyForcibly().waitFor();
-      } else {
-        logger.info("Process will be destroyed by halting JVM. Iteration {}", iteration);
-        triggerJVMHalt();
-
-        final boolean terminated = process.waitFor(60, TimeUnit.SECONDS);
-
-        if (!terminated) {
-          logger.info(
-              "Process was not terminated by halting JVM, "
-                  + "destroying process by sending of KILL signal. Iteration {}", iteration);
+      if (!completed) {
+        final boolean killSignal = random.nextBoolean();
+        if (killSignal) {
+          logger.info("Process will be destroyed by sending of KILL signal. Iteration {}",
+              iteration);
           process.destroyForcibly().waitFor();
+        } else {
+          logger.info("Process will be destroyed by halting JVM. Iteration {}", iteration);
+          triggerJVMHalt();
+
+          final boolean terminated = process.waitFor(60, TimeUnit.SECONDS);
+
+          if (!terminated) {
+            logger.info(
+                "Process was not terminated by halting JVM, "
+                    + "destroying process by sending of KILL signal. Iteration {}", iteration);
+            process.destroyForcibly().waitFor();
+          }
         }
+
+        logger.info("Process is destroyed data integrity check is started. Iteration {}",
+            iteration);
+      } else {
+        logger.error("Data load is completed with error {}, data integrity check is started. "
+            + "Iteration {}", process.exitValue(), iteration);
+        return false;
       }
 
-      logger.info("Process is destroyed data integrity check is started. Iteration {}",
-          iteration);
       return true;
     }
   }
