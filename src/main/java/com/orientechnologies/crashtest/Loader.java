@@ -78,6 +78,7 @@ class Loader implements Callable<Void> {
       }
     } catch (RuntimeException | Error e) {
       logger.error("Error during data load. Iteration " + iteration, e);
+      throw e;
     }
 
     if (stopFlag.get()) {
