@@ -18,11 +18,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 class Loader implements Callable<Void> {
+
   private static final Logger logger = LogManager.getLogger(Loader.class);
 
-  private static final int           MAX_RETRIES = 100_000;
-  private final        ODatabasePool pool;
-  private final        AtomicLong    idGen;
+  private static final int MAX_RETRIES = 100_000;
+  private final ODatabasePool pool;
+  private final AtomicLong idGen;
 
   private final boolean addIndex;
 
@@ -36,7 +37,8 @@ class Loader implements Callable<Void> {
 
   private List<byte[]> payLoad = new ArrayList<>();
 
-  Loader(ODatabasePool pool, AtomicLong idGen, boolean addIndex, boolean addBinaryRecords, AtomicBoolean stopFlag,
+  Loader(ODatabasePool pool, AtomicLong idGen, boolean addIndex, boolean addBinaryRecords,
+      AtomicBoolean stopFlag,
       int vertexesCount, int iteration) {
     this.pool = pool;
     this.idGen = idGen;
@@ -56,8 +58,10 @@ class Loader implements Callable<Void> {
 
       while (!stopFlag.get()) {
         try {
-          if (((ringsCreationCounter - ringsDeletionCounter) < vertexesCount) && random.nextDouble() > 0.1
-              || ((ringsCreationCounter - ringsDeletionCounter) >= vertexesCount) && random.nextDouble() > 0.5) {
+          if (((ringsCreationCounter - ringsDeletionCounter) < vertexesCount)
+              && random.nextDouble() > 0.1
+              || ((ringsCreationCounter - ringsDeletionCounter) >= vertexesCount)
+              && random.nextDouble() > 0.5) {
             final int ringsCount = addRing(random);
 
             if (ringsCount == -1) {
@@ -65,8 +69,19 @@ class Loader implements Callable<Void> {
             }
 
             ringsCreationCounter += ringsCount;
+
+            if (ringsCount > 0 && ringsCreationCounter > 0 && ringsCreationCounter % 1000 == 0) {
+              logger.info("{} thread, {} rings were created. Iteration {}",
+                  Thread.currentThread().getName(), ringsCreationCounter, iteration);
+            }
           } else {
-            ringsDeletionCounter += removeRing(random);
+            var removedRings = removeRing(random);
+            ringsDeletionCounter += removedRings;
+
+            if (removedRings > 0 && ringsDeletionCounter > 0 && ringsDeletionCounter % 100 == 0) {
+              logger.info("{} thread, {} rings were deleted, Iteration {}",
+                  Thread.currentThread().getName(), ringsDeletionCounter, iteration);
+            }
           }
         } catch (OutOfMemoryError e) {
           payLoad = null;
@@ -95,7 +110,8 @@ class Loader implements Callable<Void> {
       final OVertex ringsStart;
 
       try (OResultSet resultSet = session
-          .query("select from " + DataLoader.CRASH_V + " where " + DataLoader.V_ID + " = ?", vertexId)) {
+          .query("select from " + DataLoader.CRASH_V + " where " + DataLoader.V_ID + " = ?",
+              vertexId)) {
         final OResult result = resultSet.next();
 
         assert result.getVertex().isPresent();
@@ -325,7 +341,8 @@ class Loader implements Callable<Void> {
     final List<OVertex> vertices = new ArrayList<>();
 
     for (Integer vId : vertexIds) {
-      try (OResultSet resultSet = session.query("select from " + DataLoader.CRASH_V + " where " + DataLoader.V_ID + " = ?", vId)) {
+      try (OResultSet resultSet = session.query(
+          "select from " + DataLoader.CRASH_V + " where " + DataLoader.V_ID + " = ?", vId)) {
         final OResult result = resultSet.next();
 
         assert result.getVertex().isPresent();
@@ -339,7 +356,8 @@ class Loader implements Callable<Void> {
   private OVertex chooseRandomVertex(ODatabaseSession session, ThreadLocalRandom random) {
     final int id = random.nextInt(vertexesCount);
 
-    try (OResultSet result = session.query("select from " + DataLoader.CRASH_V + " where " + DataLoader.V_ID + " = " + id)) {
+    try (OResultSet result = session.query(
+        "select from " + DataLoader.CRASH_V + " where " + DataLoader.V_ID + " = " + id)) {
       //noinspection OptionalGetWithoutIsPresent
       return result.next().getVertex().get();
     }
