@@ -170,12 +170,6 @@ class DataLoader {
     }
 
     logger.info("All loaders are finished, waiting for a shutdown. Iteration {}", iteration);
-
-    //noinspection InfiniteLoopStatement
-    while (true) {
-      //noinspection BusyWait
-      Thread.sleep(60 * 1000);
-    }
   }
 
   private static void startHaltThread() throws IOException {
