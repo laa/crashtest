@@ -66,6 +66,23 @@
                         <configuration>
                             <executable>java</executable>
                             <arguments>
+                                <argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005</argument>
+                                <argument>-Xmx8g</argument>
+                                <argument>-Ddb.skipBrokenRecords=false</argument>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>com.orientechnologies.crashtest.DataChecker</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>orientdb-crash-test-debug-no-stop</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <arguments>
                                 <argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005</argument>
                                 <argument>-Xmx8g</argument>
                                 <argument>-Ddb.skipBrokenRecords=false</argument>
@@ -96,6 +113,26 @@
                     </execution>
                     <execution>
                         <id>orientdb-check-debug</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-Ddb.skipBrokenRecords=false</argument>
+                                <argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005</argument>
+                                <argument>-Xmx8g</argument>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>com.orientechnologies.crashtest.DataChecker</argument>
+                                <argument>-onlyCheck</argument>
+                                <argument>${datachecker.param.1}</argument>
+                                <argument>${datachecker.param.2}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>orientdb-check-debug-no-stop</id>
                         <goals>
                             <goal>exec</goal>
                         </goals>
