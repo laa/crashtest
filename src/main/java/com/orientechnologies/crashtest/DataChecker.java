@@ -194,7 +194,7 @@ class DataChecker {
 
     commands.add(javaExec);
     if (debugMode) {
-      commands.add("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+      commands.add("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5006");
     }
 
     commands.add("-Xmx2048m");
