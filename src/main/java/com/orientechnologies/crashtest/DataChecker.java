@@ -269,13 +269,12 @@ class DataChecker {
 
         logger.info("Process is destroyed data integrity check is started. Iteration {}",
             iteration);
+        return false;
       } else {
         logger.error("Data load is completed with error {}, data integrity check is started. "
             + "Iteration {}", process.exitValue(), iteration);
         return false;
       }
-
-      return true;
     }
   }
 
