@@ -66,12 +66,15 @@
                         <configuration>
                             <executable>java</executable>
                             <arguments>
-                                <argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005</argument>
+                                <argument>
+                                    -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005
+                                </argument>
                                 <argument>-Xmx8g</argument>
                                 <argument>-Ddb.skipBrokenRecords=false</argument>
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>com.orientechnologies.crashtest.DataChecker</argument>
+                                <argument>-debug</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -83,12 +86,15 @@
                         <configuration>
                             <executable>java</executable>
                             <arguments>
-                                <argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005</argument>
+                                <argument>
+                                    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+                                </argument>
                                 <argument>-Xmx8g</argument>
                                 <argument>-Ddb.skipBrokenRecords=false</argument>
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>com.orientechnologies.crashtest.DataChecker</argument>
+                                <argument>-debug</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -120,7 +126,9 @@
                             <executable>java</executable>
                             <arguments>
                                 <argument>-Ddb.skipBrokenRecords=false</argument>
-                                <argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005</argument>
+                                <argument>
+                                    -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005
+                                </argument>
                                 <argument>-Xmx8g</argument>
                                 <argument>-classpath</argument>
                                 <classpath/>
@@ -140,7 +148,9 @@
                             <executable>java</executable>
                             <arguments>
                                 <argument>-Ddb.skipBrokenRecords=false</argument>
-                                <argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005</argument>
+                                <argument>
+                                    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+                                </argument>
                                 <argument>-Xmx8g</argument>
                                 <argument>-classpath</argument>
                                 <classpath/>

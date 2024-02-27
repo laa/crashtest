@@ -47,6 +47,7 @@ class DataChecker {
   private static final String ONLY_CHECK_FLAG = "-onlyCheck";
   private static final String DB_PATH_FLAG = "-dbPath";
   private static final String DB_NAME_FLAG = "-dbName";
+  private static final String DEBUG_FLAG = "-debug";
 
 
   private static final Logger logger = LogManager.getLogger(DataChecker.class);
@@ -90,7 +91,7 @@ class DataChecker {
 
         executeDbCheckOnly(dbPath, dbName, addIndexes, addBinaryRecords);
       } else {
-        executeCrashSuite();
+        executeCrashSuite(argList.contains(DEBUG_FLAG));
       }
     } catch (Exception e) {
       CRASH_METADATA_MBEAN.setCrashDetected(true);
@@ -109,7 +110,7 @@ class DataChecker {
 
   }
 
-  private static void executeCrashSuite() {
+  private static void executeCrashSuite(boolean debugMode) {
     try {
       ManagementFactory.getPlatformMBeanServer().registerMBean(
           CRASH_METADATA_MBEAN,
@@ -151,7 +152,7 @@ class DataChecker {
 
         var lastIterations = startAndCrash(random, addIndex, addBinaryRecords, useSmallDiskCache,
             useSmallWal,
-            generateOOM, iteration);
+            generateOOM, iteration, debugMode);
         logger.info("Wait for 1 min to be sure that all file locks are released, {} iteration",
             iteration);
         //noinspection BusyWait
@@ -184,8 +185,7 @@ class DataChecker {
   private static boolean startAndCrash(final Random random, final boolean addIndex,
       final boolean addBinaryRecords,
       final boolean useSmallDiskCache, final boolean useSmallWal,
-      final boolean generateOom, int iteration)
-      throws IOException, InterruptedException {
+      final boolean generateOom, int iteration, boolean debugMode) throws IOException, InterruptedException {
 
     String javaExec = System.getProperty("java.home") + "/bin/java";
     javaExec = (new File(javaExec)).getCanonicalPath();
@@ -193,6 +193,10 @@ class DataChecker {
     final List<String> commands = new ArrayList<>();
 
     commands.add(javaExec);
+    if (debugMode) {
+      commands.add("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
+    }
+
     commands.add("-Xmx2048m");
 
     if (useSmallDiskCache) {
