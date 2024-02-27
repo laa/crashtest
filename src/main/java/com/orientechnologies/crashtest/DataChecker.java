@@ -244,7 +244,7 @@ class DataChecker {
     if (completed && process.exitValue() == 0) {
       logger.error("Data load is completed successfully, "
           + "test will be finished after the Db check.. Iteration {}", iteration);
-      return false;
+      return true;
     } else {
 
       if (!completed) {
