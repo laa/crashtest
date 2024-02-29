@@ -1,6 +1,5 @@
 package com.orientechnologies.crashtest;
 
-import com.orientechnologies.common.directmemory.ODirectMemoryAllocator;
 import com.orientechnologies.orient.core.db.*;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
@@ -91,7 +90,6 @@ class DataLoader {
     final AtomicBoolean stopFlag = new AtomicBoolean();
     final ExecutorService loaderService = Executors.newCachedThreadPool();
 
-    var statusTimer = new Timer();
     try (OrientDB orientDB = new OrientDB(DATABASES_URL, OrientDBConfig.defaultConfig())) {
       if (orientDB.exists(DB_NAME)) {
         orientDB.drop(DB_NAME);
@@ -99,14 +97,6 @@ class DataLoader {
 
       orientDB.execute("create database " + DB_NAME +
           " plocal users (crash identified by 'crash' role admin)");
-
-      statusTimer.scheduleAtFixedRate(new TimerTask() {
-        @Override
-        public void run() {
-          logger.info("Status: iteration {}, Allocated direct memory : {} Mb", iteration,
-              ODirectMemoryAllocator.instance().getMemoryConsumption() / 1024 / 1024 );
-        }
-      }, 0, 30_000);
 
       final int vertexesToAdd =
           ThreadLocalRandom.current().nextInt(VERTEX_COUNT - 100_000) + 100_000;
@@ -179,7 +169,6 @@ class DataLoader {
     } finally {
       loaderService.shutdown();
     }
-    statusTimer.cancel();
 
     logger.info("All loaders are finished, waiting for a shutdown. Iteration {}", iteration);
   }

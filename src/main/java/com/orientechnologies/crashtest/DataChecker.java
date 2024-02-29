@@ -208,6 +208,8 @@ class DataChecker {
       commands.add("-Dstorage.wal.maxSize=4096");
     }
 
+    commands.add("-Dmemory.profiling=true");
+
     commands.add("-classpath");
     commands.add(System.getProperty("java.class.path"));
 
