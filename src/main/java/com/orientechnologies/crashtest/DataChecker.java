@@ -197,7 +197,8 @@ class DataChecker {
       commands.add("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5006");
     }
 
-    commands.add("-Xmx2048m");
+    commands.add("-Xmx4096m");
+    commands.add("-XX:+HeapDumpOnOutOfMemoryError");
 
     if (useSmallDiskCache) {
       commands.add("-Dstorage.diskCache.bufferSize=4096");
