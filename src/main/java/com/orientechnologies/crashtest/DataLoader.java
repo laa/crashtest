@@ -103,8 +103,8 @@ class DataLoader {
       statusTimer.scheduleAtFixedRate(new TimerTask() {
         @Override
         public void run() {
-          logger.info("Status: iteration {}, Allocated direct memory : {} Gb", iteration,
-              ODirectMemoryAllocator.instance().getMemoryConsumption() / 1024 / 1024 / 1024);
+          logger.info("Status: iteration {}, Allocated direct memory : {} Mb", iteration,
+              ODirectMemoryAllocator.instance().getMemoryConsumption() / 1024 / 1024 );
         }
       }, 0, 30_000);
 
