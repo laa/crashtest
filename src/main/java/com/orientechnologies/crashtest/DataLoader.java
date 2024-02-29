@@ -104,7 +104,7 @@ class DataLoader {
       try (final ODatabaseSession session = orientDB.open(DB_NAME, "crash", "crash")) {
         final OClass vCls = session.createVertexClass(CRASH_V);
 
-        vCls.createProperty(V_ID, OType.INTEGER).createIndex(OClass.INDEX_TYPE.UNIQUE_HASH_INDEX);
+        vCls.createProperty(V_ID, OType.INTEGER).createIndex(OClass.INDEX_TYPE.UNIQUE);
         vCls.createProperty(RING_IDS, OType.EMBEDDEDLIST);
         vCls.createProperty(RING_SIZES, OType.EMBEDDEDLIST);
 
@@ -116,8 +116,7 @@ class DataLoader {
           eCls.createProperty(RANDOM_VALUES_FIELD, OType.EMBEDDEDLIST, OType.INTEGER);
 
           eCls.createIndex(RANDOM_VALUE_INDEX, OClass.INDEX_TYPE.NOTUNIQUE, RANDOM_VALUE_FIELD);
-          eCls.createIndex(RANDOM_VALUES_INDEX, OClass.INDEX_TYPE.NOTUNIQUE_HASH_INDEX,
-              RANDOM_VALUES_FIELD);
+          eCls.createIndex(RANDOM_VALUES_INDEX, OClass.INDEX_TYPE.NOTUNIQUE, RANDOM_VALUES_FIELD);
         }
 
         if (addBinaryRecords) {
