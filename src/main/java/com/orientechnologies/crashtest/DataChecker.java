@@ -185,7 +185,8 @@ class DataChecker {
   private static boolean startAndCrash(final Random random, final boolean addIndex,
       final boolean addBinaryRecords,
       final boolean useSmallDiskCache, final boolean useSmallWal,
-      final boolean generateOom, int iteration, boolean debugMode) throws IOException, InterruptedException {
+      final boolean generateOom, int iteration, boolean debugMode)
+      throws IOException, InterruptedException {
 
     String javaExec = System.getProperty("java.home") + "/bin/java";
     javaExec = (new File(javaExec)).getCanonicalPath();
@@ -487,8 +488,12 @@ class DataChecker {
           try (final OResultSet resultSet = session
               .query("select * from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = ?"
                   , randomValue)) {
-            if (resultSet.edgeStream().map(OEdge::getIdentity).collect(Collectors.toSet())
-                .contains(e.getIdentity())) {
+            var edgesWithRandomValue =
+                resultSet.edgeStream().map(OEdge::getIdentity).collect(Collectors.toSet());
+            if (edgesWithRandomValue.contains(e.getIdentity())) {
+              session
+                  .query("select * from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = ?"
+                      , randomValue).close();
               throw new IllegalStateException(
                   "Random value present inside of edge is absent in index");
             }
@@ -500,8 +505,12 @@ class DataChecker {
             try (final OResultSet resultSet = session
                 .query("select * from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = ?"
                     , rndVal)) {
-              if (resultSet.edgeStream().map(OEdge::getIdentity).collect(Collectors.toSet())
-                  .contains(e.getIdentity())) {
+              var edgesWithRandomValue =
+                  resultSet.edgeStream().map(OEdge::getIdentity).collect(Collectors.toSet());
+              if (edgesWithRandomValue.contains(e.getIdentity())) {
+                session
+                    .query("select * from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = ?"
+                        , rndVal).close();
                 throw new IllegalStateException(
                     "Random values present inside of edge is absent in index");
               }
