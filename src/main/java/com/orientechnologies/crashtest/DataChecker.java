@@ -4,7 +4,6 @@ import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.db.ODatabaseSession;
 import com.orientechnologies.orient.core.db.OrientDB;
 import com.orientechnologies.orient.core.db.OrientDBConfig;
-import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.record.ODirection;
 import com.orientechnologies.orient.core.record.OEdge;
 import com.orientechnologies.orient.core.record.OVertex;
@@ -14,9 +13,6 @@ import java.lang.management.ManagementFactory;
 import java.nio.file.FileVisitResult;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
@@ -381,13 +377,9 @@ class DataChecker {
 
   private static void runDbCheck(final String dbName, boolean addIndex, boolean addBinaryRecords,
       OrientDB orientDB, int iteration) {
-    var cores = Runtime.getRuntime().availableProcessors();
-    var vertexRidsList = new ArrayList<ORID>();
     AtomicInteger counter = new AtomicInteger();
-
     var crashTimer = new Timer();
     try {
-      var pool = Executors.newCachedThreadPool();
       try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
         logger.info("Start DB check. Iteration {}", iteration);
         int vertexCount;
@@ -404,16 +396,10 @@ class DataChecker {
           }
         }, 30 * 1000, 30 * 1000);
 
-        try (OResultSet resultSet = session.query("select @rid from " + CRASH_V)) {
-          resultSet.stream().forEach(result -> vertexRidsList.add(result.getProperty("@rid")));
-        }
-      }
-
-      var futures = new ArrayList<Future<?>>();
-      for (var vertexRid : vertexRidsList) {
-        futures.add(pool.submit(() -> {
-          try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
-            var vertex = session.<OVertex>load(vertexRid);
+        try (OResultSet resultSet = session.query("select from " + CRASH_V)) {
+          var vertexIterator = resultSet.vertexStream().iterator();
+          while (vertexIterator.hasNext()) {
+            var vertex = vertexIterator.next();
             final List<Long> ringIds = vertex.getProperty(RING_IDS);
             if (ringIds != null) {
               for (Long ringId : ringIds) {
@@ -422,34 +408,16 @@ class DataChecker {
             }
             counter.incrementAndGet();
           }
-        }));
+        }
 
-        if (futures.size() >= cores) {
-          for (var future : futures) {
-            try {
-              future.get();
-            } catch (InterruptedException | ExecutionException e) {
-              throw new RuntimeException(e);
-            }
-          }
-
-          futures.clear();
+        if (counter.get() != vertexCount) {
+          throw new IllegalStateException("Not all vertexes are present in database.");
         }
       }
-
-      for (var future : futures) {
-        try {
-          future.get();
-        } catch (InterruptedException | ExecutionException e) {
-          throw new RuntimeException(e);
-        }
-      }
-      pool.shutdown();
     } finally {
       crashTimer.cancel();
     }
   }
-
 
   private static void checkRing(final ODatabaseSession session, OVertex start, long ringId,
       final boolean addIndex,
