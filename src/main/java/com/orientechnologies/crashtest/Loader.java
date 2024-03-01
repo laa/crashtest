@@ -315,14 +315,14 @@ class Loader implements Callable<Void> {
   }
 
   private void addRandomValues(ThreadLocalRandom random, OEdge edge) {
-    final int randomValue = random.nextInt(vertexesCount / 1000);
+    final int randomValue = random.nextInt(vertexesCount / 10);
     edge.setProperty(DataLoader.RANDOM_VALUE_FIELD, randomValue);
 
-    final int randomValuesSize = random.nextInt(20) + 10;
+    final int randomValuesSize = random.nextInt(4) + 1;
     final List<Integer> randomValues = new ArrayList<>();
 
     for (int n = 0; n < randomValuesSize; n++) {
-      randomValues.add(random.nextInt(vertexesCount / 1000));
+      randomValues.add(random.nextInt(vertexesCount / 10));
     }
 
     edge.setProperty(DataLoader.RANDOM_VALUES_FIELD, randomValues);
