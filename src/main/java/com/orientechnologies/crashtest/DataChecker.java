@@ -490,7 +490,7 @@ class DataChecker {
                   , randomValue)) {
             var edgesWithRandomValue =
                 resultSet.edgeStream().map(OEdge::getIdentity).collect(Collectors.toSet());
-            if (edgesWithRandomValue.contains(e.getIdentity())) {
+            if (!edgesWithRandomValue.contains(e.getIdentity())) {
               session
                   .query("select * from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = ?"
                       , randomValue).close();
@@ -507,7 +507,7 @@ class DataChecker {
                     , rndVal)) {
               var edgesWithRandomValue =
                   resultSet.edgeStream().map(OEdge::getIdentity).collect(Collectors.toSet());
-              if (edgesWithRandomValue.contains(e.getIdentity())) {
+              if (!edgesWithRandomValue.contains(e.getIdentity())) {
                 session
                     .query("select * from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = ?"
                         , rndVal).close();
