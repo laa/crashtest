@@ -243,7 +243,7 @@ class DataChecker {
     timer.schedule(new CrashCountDownTask(secondsToWait, generateOom, iteration, addIndex,
             addBinaryRecords,
             useSmallDiskCache, useSmallWal, generateOom),
-        30 * 1000, 30 * 1000);
+        60 * 1000, 60 * 1000);
 
     final boolean completed = process.waitFor(secondsToWait, TimeUnit.SECONDS);
     timer.cancel();
