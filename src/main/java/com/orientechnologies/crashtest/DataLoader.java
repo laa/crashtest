@@ -32,6 +32,7 @@ class DataLoader {
   static final String RING_ID = "ringId";
   static final String CRASH_V = "CrashV";
   static final String CRASH_E = "CrashE";
+  static final String BINARY_RECORD = "BinaryRecord";
   static final String DB_NAME = "crashdb";
 
   static final String ARCHIVE_NAME = "crashdb_archive";

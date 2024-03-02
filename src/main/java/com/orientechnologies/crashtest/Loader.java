@@ -6,7 +6,6 @@ import com.orientechnologies.orient.core.db.ODatabaseSession;
 import com.orientechnologies.orient.core.record.ODirection;
 import com.orientechnologies.orient.core.record.OEdge;
 import com.orientechnologies.orient.core.record.OVertex;
-import com.orientechnologies.orient.core.record.impl.ORecordBytes;
 import com.orientechnologies.orient.core.sql.executor.OResult;
 import com.orientechnologies.orient.core.sql.executor.OResultSet;
 import org.apache.logging.log4j.LogManager;
@@ -270,7 +269,7 @@ class Loader implements Callable<Void> {
             }
 
             if (addBinaryRecrods) {
-              addBinaryRecord(random, edge);
+              addBinaryRecord(random, session, edge);
             }
 
             prevVertex.save();
@@ -294,7 +293,7 @@ class Loader implements Callable<Void> {
           }
 
           if (addBinaryRecrods) {
-            addBinaryRecord(random, edge);
+            addBinaryRecord(random, session, edge);
           }
 
           edge.save();
@@ -331,13 +330,15 @@ class Loader implements Callable<Void> {
     edge.setProperty(DataLoader.RANDOM_VALUES_FIELD, randomValues);
   }
 
-  private void addBinaryRecord(ThreadLocalRandom random, OEdge edge) {
+  private void addBinaryRecord(ThreadLocalRandom random, ODatabaseSession session, OEdge edge) {
     final int binarySize = random.nextInt(25 * 1024) + 1024;
     final byte[] binary = new byte[binarySize];
     random.nextBytes(binary);
 
-    var recordBytes = new ORecordBytes(binary);
-    edge.setProperty(DataLoader.BINARY_FIELD, recordBytes);
+    var binaryRecord = session.newElement(DataLoader.BINARY_RECORD);
+    binaryRecord.setProperty(DataLoader.BINARY_FIELD, binary);
+
+    edge.setProperty(DataLoader.BINARY_FIELD, binaryRecord);
     edge.setProperty(DataLoader.BINARY_FIELD_SIZE, binarySize);
   }
 
