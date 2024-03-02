@@ -486,13 +486,13 @@ class DataChecker {
           final int randomValue = e.getProperty(DataLoader.RANDOM_VALUE_FIELD);
 
           try (final OResultSet resultSet = session
-              .query("select * from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = ?"
+              .query("select @rid from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = ?"
                   , randomValue)) {
             var edgesWithRandomValue =
-                resultSet.edgeStream().map(OEdge::getIdentity).collect(Collectors.toSet());
+                resultSet.stream().map(it -> it.getProperty("@rid")).collect(Collectors.toSet());
             if (!edgesWithRandomValue.contains(e.getIdentity())) {
               session
-                  .query("select * from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = ?"
+                  .query("select @rid from " + CRASH_E + " where " + RANDOM_VALUE_FIELD + " = ?"
                       , randomValue).close();
               throw new IllegalStateException(
                   "Random value present inside of edge is absent in index");
@@ -503,13 +503,13 @@ class DataChecker {
 
           for (int rndVal : randomValues) {
             try (final OResultSet resultSet = session
-                .query("select * from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = ?"
+                .query("select @rid from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = ?"
                     , rndVal)) {
               var edgesWithRandomValue =
-                  resultSet.edgeStream().map(OEdge::getIdentity).collect(Collectors.toSet());
+                  resultSet.stream().map(it -> it.getProperty("@rid")).collect(Collectors.toSet());
               if (!edgesWithRandomValue.contains(e.getIdentity())) {
                 session
-                    .query("select * from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = ?"
+                    .query("select @rid from " + CRASH_E + " where " + RANDOM_VALUES_FIELD + " = ?"
                         , rndVal).close();
                 throw new IllegalStateException(
                     "Random values present inside of edge is absent in index");
