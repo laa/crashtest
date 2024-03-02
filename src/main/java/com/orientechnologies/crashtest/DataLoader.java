@@ -141,6 +141,7 @@ class DataLoader {
       }
 
       final List<Future<Void>> futures = new ArrayList<>();
+      var statusTimer = new Timer();
       try (final ODatabasePool pool = new ODatabasePool(orientDB, "crashdb", "crash",
           "crash")) {
         final AtomicLong idGen = new AtomicLong();
@@ -149,11 +150,44 @@ class DataLoader {
         var threadsCount = Math.max(Runtime.getRuntime().availableProcessors(), 8);
         logger.info("Start rings creation using {} loaders. Iteration {}", threadsCount,
             iteration);
+
+        var ringsCreated = new AtomicLong();
+        var ringsDeleted = new AtomicLong();
+
         for (int i = 0; i < threadsCount; i++) {
           futures.add(loaderService.submit(
               new Loader(pool, idGen, addIndex, addBinaryRecords, stopFlag, vertexesToAdd,
-                  iteration)));
+                  iteration, ringsCreated, ringsDeleted)));
         }
+
+        statusTimer.scheduleAtFixedRate(new TimerTask() {
+          private long prevRingsCreated = 0;
+          private long prevRingsDeleted = 0;
+
+          @Override
+          public void run() {
+            var currentRingsCreated = ringsCreated.get();
+            var currentRingsDeleted = ringsDeleted.get();
+
+            var createdDiff = currentRingsCreated - prevRingsCreated;
+            var deletedDiff = currentRingsDeleted - prevRingsDeleted;
+
+            if (createdDiff != 0 && deletedDiff != 0) {
+              logger.info("Rings created: {} (diff : {}) , "
+                      + "rings deleted: {} {dif : {}). "
+                      + "Iteration {}.", currentRingsCreated, createdDiff,
+                  currentRingsDeleted, deletedDiff, iteration);
+            } else {
+              logger.info("Rings created: {}, rings deleted: {}."
+                      + "!!! Nothing changed from previous time !!!. "
+                      + "Iteration {}.", currentRingsCreated,
+                  currentRingsDeleted, iteration);
+            }
+
+            prevRingsCreated = currentRingsCreated;
+            prevRingsDeleted = currentRingsDeleted;
+          }
+        }, 60_000, 60_000);
 
         for (Future<Void> future : futures) {
           try {
@@ -165,6 +199,7 @@ class DataLoader {
 
         stopFlag.set(true);
       }
+      statusTimer.cancel();
     } finally {
       loaderService.shutdown();
     }

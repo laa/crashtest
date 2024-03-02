@@ -36,11 +36,14 @@ class Loader implements Callable<Void> {
 
   private final int iteration;
 
+  private final AtomicLong ringsCreated;
+  private final AtomicLong ringsDeleted;
+
   private List<byte[]> payLoad = new ArrayList<>();
 
   Loader(ODatabasePool pool, AtomicLong idGen, boolean addIndex, boolean addBinaryRecords,
       AtomicBoolean stopFlag,
-      int vertexesCount, int iteration) {
+      int vertexesCount, int iteration, AtomicLong ringsCreated, AtomicLong ringsDeleted) {
     this.pool = pool;
     this.idGen = idGen;
     this.addIndex = addIndex;
@@ -48,6 +51,8 @@ class Loader implements Callable<Void> {
     this.stopFlag = stopFlag;
     this.vertexesCount = vertexesCount;
     this.iteration = iteration;
+    this.ringsCreated = ringsCreated;
+    this.ringsDeleted = ringsDeleted;
   }
 
   @Override
@@ -70,19 +75,11 @@ class Loader implements Callable<Void> {
             }
 
             ringsCreationCounter += ringsCount;
-
-            if (ringsCount > 0 && ringsCreationCounter > 0 && ringsCreationCounter % 1000 == 0) {
-              logger.info("{} thread, {} rings were created. Iteration {}",
-                  Thread.currentThread().getName(), ringsCreationCounter, iteration);
-            }
+            ringsCreated.addAndGet(ringsCount);
           } else {
             var removedRings = removeRing(random);
             ringsDeletionCounter += removedRings;
-
-            if (removedRings > 0 && ringsDeletionCounter > 0 && ringsDeletionCounter % 100 == 0) {
-              logger.info("{} thread, {} rings were deleted, Iteration {}",
-                  Thread.currentThread().getName(), ringsDeletionCounter, iteration);
-            }
+            ringsDeleted.addAndGet(removedRings);
           }
         } catch (OutOfMemoryError e) {
           payLoad = null;
