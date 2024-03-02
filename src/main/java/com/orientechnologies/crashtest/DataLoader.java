@@ -174,7 +174,7 @@ class DataLoader {
 
             if (createdDiff != 0 && deletedDiff != 0) {
               logger.info("Rings created: {} (diff : {}) , "
-                      + "rings deleted: {} {dif : {}). "
+                      + "rings deleted: {} {diff : {}). "
                       + "Iteration {}.", currentRingsCreated, createdDiff,
                   currentRingsDeleted, deletedDiff, iteration);
             } else {
