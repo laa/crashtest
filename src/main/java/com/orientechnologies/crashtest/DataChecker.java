@@ -146,7 +146,7 @@ class DataChecker {
         CRASH_METADATA_MBEAN.setCrashIteration(iteration);
 
         final boolean addIndex = random.nextBoolean();
-        final boolean addBinaryRecords = random.nextBoolean();
+        final boolean addBinaryRecords = random.nextFloat() < 0.2f;
         final boolean useSmallDiskCache = random.nextBoolean();
         final boolean useSmallWal = random.nextBoolean();
         final boolean generateOOM = false;
