@@ -8,6 +8,7 @@ import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.record.ODirection;
 import com.orientechnologies.orient.core.record.OEdge;
 import com.orientechnologies.orient.core.record.OVertex;
+import com.orientechnologies.orient.core.record.impl.ORecordBytes;
 import com.orientechnologies.orient.core.sql.executor.OResultSet;
 import com.orientechnologies.orient.core.storage.OChecksumMode;
 import java.lang.management.ManagementFactory;
@@ -519,7 +520,7 @@ class DataChecker {
         }
 
         if (addBinaryRecords) {
-          final byte[] binaryRecord = e.getProperty(DataLoader.BINARY_FIELD);
+          final ORecordBytes binaryRecord = e.getProperty(DataLoader.BINARY_FIELD);
 
           if (binaryRecord == null) {
             throw new IllegalStateException("Binary record is absent");
@@ -527,7 +528,7 @@ class DataChecker {
 
           final int binaryRecordLength = e.getProperty(DataLoader.BINARY_FIELD_SIZE);
 
-          if (binaryRecord.length != binaryRecordLength) {
+          if (binaryRecord.getSize() != binaryRecordLength) {
             throw new IllegalStateException(
                 "Length of binary record does not equal to the stored length");
           }

@@ -120,7 +120,7 @@ class DataLoader {
         }
 
         if (addBinaryRecords) {
-          eCls.createProperty(BINARY_FIELD, OType.BINARY);
+          eCls.createProperty(BINARY_FIELD, OType.LINK);
           eCls.createProperty(BINARY_FIELD_SIZE, OType.INTEGER);
         }
 
