@@ -177,8 +177,9 @@ class Loader implements Callable<Void> {
       for (OEdge edge : edgesToDelete) {
         edge.delete();
         if (addBinaryRecrods) {
-          ORecordBytes binary = edge.getProperty(DataLoader.BINARY_FIELD);
-          binary.delete();
+          var binaryId = edge.getLinkProperty(DataLoader.BINARY_FIELD);
+          Objects.requireNonNull(binaryId, "Binary record is absent");
+          session.delete(binaryId.getIdentity());
         }
       }
 
