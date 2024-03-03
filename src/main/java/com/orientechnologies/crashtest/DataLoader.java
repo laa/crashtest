@@ -160,7 +160,7 @@ class DataLoader {
           futures.add(loaderService.submit(
               new Loader(pool, idGen, addIndex, addBinaryRecords, stopFlag, vertexesToAdd,
                   iteration, ringsCreated, ringsDeleted,
-                  vertexesToAdd / threadsCount)));
+                  Math.max(vertexesToAdd / threadsCount / 3, 100))));
         }
 
         statusTimer.scheduleAtFixedRate(new TimerTask() {
