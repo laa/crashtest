@@ -104,6 +104,7 @@ class DataLoader {
 
       try (final ODatabaseSession session = orientDB.open(DB_NAME, "crash", "crash")) {
         final OClass vCls = session.createVertexClass(CRASH_V);
+        session.createClass(BINARY_RECORD);
 
         vCls.createProperty(V_ID, OType.INTEGER).createIndex(OClass.INDEX_TYPE.UNIQUE);
         vCls.createProperty(RING_IDS, OType.EMBEDDEDLIST);
