@@ -38,11 +38,14 @@ class Loader implements Callable<Void> {
   private final AtomicLong ringsCreated;
   private final AtomicLong ringsDeleted;
 
+  private final int ringsToAdd;
+
   private List<byte[]> payLoad = new ArrayList<>();
 
   Loader(ODatabasePool pool, AtomicLong idGen, boolean addIndex, boolean addBinaryRecords,
       AtomicBoolean stopFlag,
-      int vertexesCount, int iteration, AtomicLong ringsCreated, AtomicLong ringsDeleted) {
+      int vertexesCount, int iteration, AtomicLong ringsCreated, AtomicLong ringsDeleted,
+      int ringsToAdd) {
     this.pool = pool;
     this.idGen = idGen;
     this.addIndex = addIndex;
@@ -52,6 +55,7 @@ class Loader implements Callable<Void> {
     this.iteration = iteration;
     this.ringsCreated = ringsCreated;
     this.ringsDeleted = ringsDeleted;
+    this.ringsToAdd = ringsToAdd;
   }
 
   @Override
@@ -63,9 +67,9 @@ class Loader implements Callable<Void> {
 
       while (!stopFlag.get()) {
         try {
-          if (((ringsCreationCounter - ringsDeletionCounter) < vertexesCount)
+          if (((ringsCreationCounter - ringsDeletionCounter) < ringsToAdd)
               && random.nextDouble() > 0.1
-              || ((ringsCreationCounter - ringsDeletionCounter) >= vertexesCount)
+              || ((ringsCreationCounter - ringsDeletionCounter) >= ringsToAdd)
               && random.nextDouble() > 0.5) {
             final int ringsCount = addRing(random);
 

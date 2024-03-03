@@ -158,7 +158,8 @@ class DataLoader {
         for (int i = 0; i < threadsCount; i++) {
           futures.add(loaderService.submit(
               new Loader(pool, idGen, addIndex, addBinaryRecords, stopFlag, vertexesToAdd,
-                  iteration, ringsCreated, ringsDeleted)));
+                  iteration, ringsCreated, ringsDeleted,
+                  vertexesToAdd / threadsCount)));
         }
 
         statusTimer.scheduleAtFixedRate(new TimerTask() {
