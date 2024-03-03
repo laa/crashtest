@@ -15,6 +15,7 @@ import java.lang.management.ManagementFactory;
 import java.nio.file.FileVisitResult;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -410,6 +411,7 @@ class DataChecker {
         }
       }
 
+      Set<Long> processedRings = Collections.newSetFromMap(new ConcurrentHashMap<>());
       var futures = new ArrayList<Future<?>>();
       for (var vertexRid : vertexRidsList) {
         futures.add(pool.submit(() -> {
@@ -418,7 +420,9 @@ class DataChecker {
             final List<Long> ringIds = vertex.getProperty(RING_IDS);
             if (ringIds != null) {
               for (Long ringId : ringIds) {
-                checkRing(session, vertex, ringId, addIndex, addBinaryRecords);
+                if (processedRings.add(ringId)) {
+                  checkRing(session, vertex, ringId, addIndex, addBinaryRecords);
+                }
               }
             }
             counter.incrementAndGet();
