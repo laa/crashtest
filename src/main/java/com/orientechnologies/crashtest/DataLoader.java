@@ -180,9 +180,9 @@ class DataLoader {
                       + "Iteration {}.", currentRingsCreated, createdDiff,
                   currentRingsDeleted, deletedDiff, iteration);
             } else {
-              logger.info("Rings created: {}, rings deleted: {}."
+              logger.info("!!! Rings created: {}, rings deleted: {}."
                       + "!!! Nothing changed from previous time !!!. "
-                      + "Iteration {}.", currentRingsCreated,
+                      + "Iteration {}. !!!", currentRingsCreated,
                   currentRingsDeleted, iteration);
             }
 
