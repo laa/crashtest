@@ -415,9 +415,9 @@ class DataChecker {
       Set<Long> processedRings = Collections.newSetFromMap(new ConcurrentHashMap<>());
       var connectionPool = orientDB.cachedPool(dbName, "crash", "crash");
 
-      try (ODatabaseSession session = connectionPool.acquire()) {
-        for (var vertexRid : vertexRidsList) {
-          futures.add(pool.submit(() -> {
+      for (var vertexRid : vertexRidsList) {
+        futures.add(pool.submit(() -> {
+          try (ODatabaseSession session = connectionPool.acquire()) {
             var vertex = session.<OVertex>load(vertexRid);
             final List<Long> ringIds = vertex.getProperty(RING_IDS);
             if (ringIds != null) {
@@ -427,9 +427,9 @@ class DataChecker {
                 }
               }
             }
-            counter.incrementAndGet();
-          }));
-        }
+          }
+          counter.incrementAndGet();
+        }));
 
         if (futures.size() >= cores) {
           for (var future : futures) {
