@@ -411,11 +411,13 @@ class DataChecker {
         }
       }
 
-      Set<Long> processedRings = Collections.newSetFromMap(new ConcurrentHashMap<>());
       var futures = new ArrayList<Future<?>>();
-      for (var vertexRid : vertexRidsList) {
-        futures.add(pool.submit(() -> {
-          try (ODatabaseSession session = orientDB.open(dbName, "crash", "crash")) {
+      Set<Long> processedRings = Collections.newSetFromMap(new ConcurrentHashMap<>());
+      var connectionPool = orientDB.cachedPool(dbName, "crash", "crash");
+
+      try (ODatabaseSession session = connectionPool.acquire()) {
+        for (var vertexRid : vertexRidsList) {
+          futures.add(pool.submit(() -> {
             var vertex = session.<OVertex>load(vertexRid);
             final List<Long> ringIds = vertex.getProperty(RING_IDS);
             if (ringIds != null) {
@@ -426,8 +428,8 @@ class DataChecker {
               }
             }
             counter.incrementAndGet();
-          }
-        }));
+          }));
+        }
 
         if (futures.size() >= cores) {
           for (var future : futures) {
@@ -437,7 +439,6 @@ class DataChecker {
               throw new RuntimeException(e);
             }
           }
-
           futures.clear();
         }
       }
